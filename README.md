@@ -9,15 +9,19 @@
 Replay is a standalone, CLI-based execution engine in Go for declarative end-to-end workflow testing.
 
 It combines three things in one workflow file:
+
 - HTTP calls (API verification)
 - Stateful variable passing across steps (tokens, IDs, computed values)
 - Native database operations (PostgreSQL and Redis)
 
 Replay is built for teams that want fast, deterministic, and scriptable E2E validation without heavy test framework overhead.
 
+Replay can also run multiple workflows at the same time, which is useful for CI parallelization, tenant-based testing, or high-volume regression checks.
+
 ## Why Replay
 
 Replay is designed to make production-like test flows easy to express and reliable to run:
+
 - Declarative YAML DSL for readable workflows
 - Strong runtime performance from Go
 - Native DB execution support for setup, mutation, and validation
@@ -27,11 +31,13 @@ Replay is designed to make production-like test flows easy to express and reliab
 ## Project Vision
 
 Replay executes a YAML workflow from top to bottom. Each step can:
+
 - Perform an action (`http` or `db`)
 - Extract values into a shared state bag
 - Assert expected outcomes
 
 This lets you model complete user journeys, such as:
+
 1. Login and capture JWT
 2. Create an entity over HTTP
 3. Update state directly in PostgreSQL
@@ -50,26 +56,32 @@ This lets you model complete user journeys, such as:
 Replay is organized around these components:
 
 1. Parser
+
 - Loads YAML workflow files into Go structs
 - Validates required fields and step shape
 
 2. State Bag
+
 - Concurrency-safe key-value store for runtime variables
 - Shared across all workflow steps
 
 3. Templating Layer
+
 - Replaces placeholders such as `{{ token }}` before execution
 - Applies to HTTP URL, headers, body, SQL, and command args
 
 4. Runners
+
 - HTTP Runner: executes GET/POST/etc., captures responses
 - DB Runner: executes SQL or Redis commands using pooled connections
 
 5. Assertion Engine
+
 - Evaluates conditions on output payloads and metadata
 - Supports JSONPath-based targeting and value comparisons
 
 6. Reporter
+
 - Human-friendly CLI output
 - Colored pass/fail status per step and workflow summary
 
@@ -143,35 +155,67 @@ Future command examples:
 ```bash
 replay validate workflow.yaml
 replay run workflow.yaml --env .env --verbose
+replay run workflows/*.yaml --concurrency 4
 replay version
 ```
+
+## Parallel Workflow Execution
+
+Yes, this model works well in Go.
+
+Suggested approach:
+
+- Run each workflow in its own isolated execution context (its own state bag)
+- Use a worker pool with configurable concurrency (for example, `--concurrency 4`)
+- Share DB/HTTP connection pools, but isolate runtime variables per workflow
+- Emit grouped logs per workflow, then print a final aggregate summary
+
+Recommended CLI shape:
+
+```bash
+replay run workflow-a.yaml workflow-b.yaml workflow-c.yaml --concurrency 3
+replay run workflows/*.yaml --concurrency 6 --fail-fast=false
+```
+
+Important safeguards:
+
+- Do not share one state bag across workflows
+- Cap max concurrency to avoid DB/API overload
+- Keep deterministic output ordering in the final summary
+- Support both fail-fast and continue-on-error modes
 
 ## Implementation Roadmap
 
 ### Phase 1: DSL and Parser
+
 - Define YAML schema (`name`, `type`, `request`, `extract`, `assert`, etc.)
 - Build Go struct model
 - Implement parser and schema validation
 
 ### Phase 2: State and HTTP
+
 - Implement concurrency-safe state bag
 - Add placeholder templating (`{{ var }}`)
 - Implement HTTP runner and extraction
 
 ### Phase 3: Database Integration
+
 - Add connection config for PostgreSQL and Redis
 - Implement PostgreSQL adapter for raw SQL execution
 - Implement Redis adapter for command execution
 - Support extraction from DB results into state bag
 
 ### Phase 4: Assertions and Reporting
+
 - Implement assertion operators (`eq`, `ne`, `gt`, `contains`, `not_null`, etc.)
 - Add JSONPath targeting in assertions and extraction
 - Build colored terminal report and summary
 
 ### Phase 5: CLI and Packaging
+
 - Build CLI with Cobra
 - Add `replay run workflow.yaml`
+- Add multi-workflow execution with `--concurrency N`
 - Prepare release flow for open-source distribution
 
 ## Open Source Plan
@@ -179,6 +223,7 @@ replay version
 Replay is intended to be open source from day one.
 
 Planned project standards:
+
 - MIT License
 - Contributor guidelines
 - Issue and pull request templates
@@ -190,6 +235,7 @@ Planned project standards:
 Contributions are welcome.
 
 Areas that will need help early:
+
 - DSL evolution and validation rules
 - Assertion engine design
 - Driver adapters and integration tests

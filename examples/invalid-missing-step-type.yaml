@@ -1,0 +1,6 @@
+name: invalid-missing-step-type
+steps:
+  - name: bad-step
+    request:
+      method: GET
+      url: /health

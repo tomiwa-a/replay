@@ -1,0 +1,32 @@
+name: valid-mixed
+version: v0.1
+config:
+  http:
+    base_url: https://api.example.com
+  postgres:
+    dsn: ${POSTGRES_DSN}
+steps:
+  - name: login
+    type: http
+    request:
+      method: POST
+      url: /auth/login
+      headers:
+        Content-Type: application/json
+      body:
+        email: qa@example.com
+        password: pass123
+    extract:
+      token: $.data.token
+    assert:
+      - path: $.status
+        op: eq
+        value: 200
+
+  - name: check-user
+    type: db
+    db:
+      engine: postgres
+      query: SELECT id FROM users WHERE email = 'qa@example.com';
+    extract:
+      user_id: $.rows[0].id

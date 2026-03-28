@@ -1,0 +1,7 @@
+name: valid-minimal
+steps:
+  - name: health-check
+    type: http
+    request:
+      method: GET
+      url: /health

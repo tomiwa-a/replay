@@ -1,0 +1,165 @@
+package validate
+
+import (
+	"fmt"
+	"strings"
+
+	"github.com/replay/replay/internal/workflow"
+)
+
+type ValidationError struct {
+	Path    string
+	Message string
+}
+
+func (e ValidationError) Error() string {
+	return fmt.Sprintf("%s: %s", e.Path, e.Message)
+}
+
+type Errors []ValidationError
+
+func (e Errors) Error() string {
+	parts := make([]string, 0, len(e))
+	for _, item := range e {
+		parts = append(parts, item.Error())
+	}
+	return strings.Join(parts, "\n")
+}
+
+func Workflow(wf workflow.Workflow) error {
+	var errs Errors
+
+	if strings.TrimSpace(wf.Name) == "" {
+		errs = append(errs, ValidationError{Path: "name", Message: "is required"})
+	}
+
+	if len(wf.Steps) == 0 {
+		errs = append(errs, ValidationError{Path: "steps", Message: "must contain at least one step"})
+	}
+
+	seen := map[string]int{}
+	for i, step := range wf.Steps {
+		stepPath := fmt.Sprintf("steps[%d]", i)
+		stepName := strings.TrimSpace(step.Name)
+		if stepName == "" {
+			errs = append(errs, ValidationError{Path: stepPath + ".name", Message: "is required"})
+		} else {
+			if first, ok := seen[stepName]; ok {
+				errs = append(errs, ValidationError{Path: stepPath + ".name", Message: fmt.Sprintf("must be unique (already used at steps[%d])", first)})
+			} else {
+				seen[stepName] = i
+			}
+		}
+
+		switch step.Type {
+		case workflow.StepTypeHTTP:
+			err := validateHTTPStep(stepPath, step)
+			errs = append(errs, err...)
+		case workflow.StepTypeDB:
+			err := validateDBStep(stepPath, step)
+			errs = append(errs, err...)
+		default:
+			errs = append(errs, ValidationError{Path: stepPath + ".type", Message: "must be one of: http, db"})
+		}
+
+		err := validateExtract(stepPath, step.Extract)
+		errs = append(errs, err...)
+
+		err = validateAssert(stepPath, step.Assert)
+		errs = append(errs, err...)
+	}
+
+	if len(errs) > 0 {
+		return errs
+	}
+
+	return nil
+}
+
+func validateHTTPStep(stepPath string, step workflow.Step) Errors {
+	var errs Errors
+
+	if step.Request == nil {
+		errs = append(errs, ValidationError{Path: stepPath + ".request", Message: "is required for http step"})
+		return errs
+	}
+
+	if strings.TrimSpace(step.Request.Method) == "" {
+		errs = append(errs, ValidationError{Path: stepPath + ".request.method", Message: "is required"})
+	}
+
+	if strings.TrimSpace(step.Request.URL) == "" {
+		errs = append(errs, ValidationError{Path: stepPath + ".request.url", Message: "is required"})
+	}
+
+	if step.DB != nil {
+		errs = append(errs, ValidationError{Path: stepPath + ".db", Message: "must be empty for http step"})
+	}
+
+	return errs
+}
+
+func validateDBStep(stepPath string, step workflow.Step) Errors {
+	var errs Errors
+
+	if step.DB == nil {
+		errs = append(errs, ValidationError{Path: stepPath + ".db", Message: "is required for db step"})
+		return errs
+	}
+
+	switch step.DB.Engine {
+	case workflow.DBEnginePostgres, workflow.DBEngineRedis:
+	default:
+		errs = append(errs, ValidationError{Path: stepPath + ".db.engine", Message: "must be one of: postgres, redis"})
+	}
+
+	query := strings.TrimSpace(step.DB.Query)
+	hasCommand := len(step.DB.Command) > 0
+
+	if query == "" && !hasCommand {
+		errs = append(errs, ValidationError{Path: stepPath + ".db", Message: "must include query or command"})
+	}
+
+	if query != "" && hasCommand {
+		errs = append(errs, ValidationError{Path: stepPath + ".db", Message: "query and command are mutually exclusive"})
+	}
+
+	for i, arg := range step.DB.Command {
+		if strings.TrimSpace(arg) == "" {
+			errs = append(errs, ValidationError{Path: fmt.Sprintf("%s.db.command[%d]", stepPath, i), Message: "must not be empty"})
+		}
+	}
+
+	if step.Request != nil {
+		errs = append(errs, ValidationError{Path: stepPath + ".request", Message: "must be empty for db step"})
+	}
+
+	return errs
+}
+
+func validateExtract(stepPath string, extract map[string]string) Errors {
+	var errs Errors
+	for key, path := range extract {
+		if strings.TrimSpace(key) == "" {
+			errs = append(errs, ValidationError{Path: stepPath + ".extract", Message: "keys must not be empty"})
+		}
+		if strings.TrimSpace(path) == "" {
+			errs = append(errs, ValidationError{Path: stepPath + ".extract." + key, Message: "jsonpath must not be empty"})
+		}
+	}
+	return errs
+}
+
+func validateAssert(stepPath string, rules []workflow.AssertRule) Errors {
+	var errs Errors
+	for i, rule := range rules {
+		rulePath := fmt.Sprintf("%s.assert[%d]", stepPath, i)
+		if strings.TrimSpace(rule.Path) == "" {
+			errs = append(errs, ValidationError{Path: rulePath + ".path", Message: "is required"})
+		}
+		if strings.TrimSpace(rule.Op) == "" {
+			errs = append(errs, ValidationError{Path: rulePath + ".op", Message: "is required"})
+		}
+	}
+	return errs
+}
