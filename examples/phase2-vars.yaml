@@ -1,0 +1,33 @@
+# This workflow demonstrates Phase 2 features:
+# 1. Variable interpolation ({{ var }})
+# 2. Variable extraction (extract section)
+# 3. Dynamic bodies and headers
+
+name: phase2-demonstration
+config:
+  http:
+    base_url: https://httpbin.org
+
+steps:
+  - name: generate-data
+    type: http
+    request:
+      method: POST
+      url: /post
+      headers:
+        Content-Type: application/json
+      body:
+        original_msg: "Hello from Replay"
+    extract:
+      # httpbin returns the sent body in "json" field
+      saved_message: $.data.json.original_msg
+      server_id: $.header.Server[0]
+
+  - name: reuse-data
+    type: http
+    request:
+      method: GET
+      # Uses the variable extracted in the previous step
+      url: /get?echo={{ saved_message }}&from={{ server_id }}
+    extract:
+      echoed_val: $.data.args.echo
