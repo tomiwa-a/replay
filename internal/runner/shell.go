@@ -76,10 +76,6 @@ func Shell(step workflow.Step, store *state.Store) error {
 		output := stdout.String()
 		errStr := stderr.String()
 
-		// For multiple commands, we'll concatenate outputs or just keep the last one for extraction?
-		// Usually, if people run multiple commands, they might want to extract from the last one or all.
-		// Let's store individual outputs in state if multiple commands exist?
-		// Replay convention for now: last command's stdout/stderr is what counts for global extract.
 		finalOutput = output
 		finalStderr = errStr
 

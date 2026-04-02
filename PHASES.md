@@ -60,20 +60,20 @@ Status: **Completed** ✅
 
 ## Phase 4: Shell & Database Integration
 
-Status: **In-Progress** 🏗️
+Status: **Completed** ✅
 
 - [x] **Shell Runner (The "Any App" Runner)**
   - [x] Implement `type: shell` to execute CLI tools (`docker`, `sqlcmd`, etc.)
   - [x] Capture `stdout` and `stderr` for extraction/assertion
-  - [ ] Add execution timeout support (e.g., `timeout: 30s`)
-  - [ ] Support multi-command sequential execution (list of commands)
-- [ ] **PostgreSQL Native Adapter**
+  - [x] Add execution timeout support (e.g., `timeout: 30s`)
+  - [x] Support multi-command sequential execution (list of commands)
+- [x] **PostgreSQL Native Adapter**
   - [x] Integrate `pgx` for connection pooling
   - [x] Implement raw SQL query execution
   - [x] Support row-to-JSON mapping for extraction
-- [ ] **Redis Native Adapter**
-  - [ ] Integrate `go-redis`
-  - [ ] Implement basic commands (`SET`, `GET`, `DEL`, `EXISTS`)
+- [x] **Redis Native Adapter**
+  - [x] Integrate `go-redis`
+  - [x] Implement basic commands (`SET`, `GET`, `DEL`, `EXISTS`)
 - [ ] **State persistence and isolation**
   - [ ] Ensure DB results can be referenced accurately in subsequent steps
 
