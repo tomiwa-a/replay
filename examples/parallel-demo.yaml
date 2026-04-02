@@ -1,3 +1,5 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/tomiwa-a/replay/main/schema.json
+
 name: Slow Task A
 steps:
   - name: Sleep 1 Second
@@ -16,3 +18,5 @@ steps:
   - name: Print Message B
     type: print
     message: "Task B finished after sleep"
+
+

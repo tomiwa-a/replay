@@ -65,10 +65,10 @@
             }
           },
           "command": {
-             "oneOf": [
-               { "type": "string" },
-               { "type": "array", "items": { "type": "string" } }
-             ]
+            "oneOf": [
+              { "type": "string" },
+              { "type": "array", "items": { "type": "string" } }
+            ]
           },
           "dir": { "type": "string" },
           "timeout": { "type": "string" },
