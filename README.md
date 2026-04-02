@@ -243,6 +243,6 @@ Areas that will need help early:
 
 ## Status
 
-Replay is currently in design and early implementation planning.
+Replay is currently in the completion of Phase 1. You can track the granular implementation progress in [PHASES.md](PHASES.md).
 
 If this direction matches your testing needs, open an issue with your use case and expected workflow patterns.
