@@ -12,23 +12,15 @@ steps:
     extract:
       user_json: "$"
     assert:
-      - path: "$.name"
-        op: "eq"
-        value: "Alice"
-      - path: "$.score"
-        op: "gt"
-        value: 50
+      - ["$.name", "eq", "Alice"]
+      - ["$.score", "gt", 50]
 
   - name: Shell Assertion
     type: shell
     command: 'echo "{\"status\": \"ok\", \"count\": 5}"'
     assert:
-      - path: "$.status"
-        op: "eq"
-        value: "ok"
-      - path: "$.count"
-        op: "lt"
-        value: 10
+      - ["$.status", "eq", "ok"]
+      - ["$.count", "lt", 10]
 
   - name: Ignore Error Test
     type: shell

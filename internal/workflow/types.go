@@ -88,7 +88,33 @@ type DBRequest struct {
 }
 
 type AssertRule struct {
-	Path  string `yaml:"path" json:"path"`
-	Op    string `yaml:"op" json:"op"`
+	Path  string `yaml:"path,omitempty" json:"path,omitempty"`
+	Op    string `yaml:"op,omitempty" json:"op,omitempty"`
 	Value any    `yaml:"value,omitempty" json:"value,omitempty"`
+}
+
+func (r *AssertRule) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var slice []any
+	if err := unmarshal(&slice); err == nil {
+		if len(slice) >= 2 {
+			if s, ok := slice[0].(string); ok {
+				r.Path = s
+			}
+			if s, ok := slice[1].(string); ok {
+				r.Op = s
+			}
+			if len(slice) >= 3 {
+				r.Value = slice[2]
+			}
+			return nil
+		}
+	}
+
+	type Alias AssertRule
+	var res Alias
+	if err := unmarshal(&res); err != nil {
+		return err
+	}
+	*r = AssertRule(res)
+	return nil
 }
