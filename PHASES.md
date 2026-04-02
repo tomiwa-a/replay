@@ -84,7 +84,7 @@ Status: **Completed** ✅
 
 ## Phase 5: Assertions & Reporting
 
-Status: **In-Progress** 🏗️
+Status: **Completed** ✅
 
 - [x] **Assertion Engine**
   - [x] Implement operators: `eq`, `ne`, `gt`, `lt`, `contains`, `not_null`
@@ -100,11 +100,11 @@ Status: **In-Progress** 🏗️
 
 ## Phase 6: Parallelism & Advanced Features
 
-Status: **Planned** 📅
+Status: **In-Progress** 🏗️
 
-- [ ] **Concurrency Engine**
-  - [ ] Implement worker pool for multi-workflow execution
-  - [ ] Add `--concurrency N` flag
+- [x] **Concurrency Engine**
+  - [x] Implement worker pool for multi-workflow execution
+  - [x] Add `--concurrency N` flag
   - [ ] Add `--fail-fast` toggle
 - [ ] **Parallel Command Execution**
   - [ ] Implement `parallel: true` for shell steps with multiple commands
