@@ -85,6 +85,8 @@ func (e *Engine) ExecuteSteps(steps []workflow.Step, config workflow.Config) err
 			err = runner.Print(step, e.state)
 		case workflow.StepTypeLoop:
 			err = e.ExecuteLoop(step, config)
+		case workflow.StepTypeCall:
+			err = e.ExecuteCall(step, config)
 		default:
 			err = fmt.Errorf("step type %q not yet implemented", step.Type)
 		}
@@ -141,4 +143,19 @@ func (e *Engine) ExecuteLoop(step workflow.Step, config workflow.Config) error {
 	}
 
 	return nil
+}
+
+func (e *Engine) ExecuteCall(step workflow.Step, config workflow.Config) error {
+	vars := e.state.All()
+	filePath := template.Render(step.File, vars)
+	target := template.Render(step.Target, vars)
+
+	if filePath == "" {
+		return fmt.Errorf("call step requires 'file' field")
+	}
+
+	// Load the target workflow file
+	// Note: We need a way to access the parser. Since engine is internal, maybe we add it or pass it.
+	// For now, satisfy the interface.
+	return fmt.Errorf("cross-file call to %s (target: %s) not fully implemented in engine yet", filePath, target)
 }
