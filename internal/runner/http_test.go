@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/replay/replay/internal/reporter"
 	"github.com/replay/replay/internal/state"
 	"github.com/replay/replay/internal/workflow"
 )
@@ -21,7 +22,8 @@ func TestHTTPRunner_Run(t *testing.T) {
 	defer s.Close()
 
 	store := state.NewStore()
-	runner := NewHTTPRunner(store)
+	rep := reporter.New()
+	runner := NewHTTPRunner(store, rep)
 
 	step := workflow.Step{
 		Name: "login",
@@ -35,7 +37,8 @@ func TestHTTPRunner_Run(t *testing.T) {
 		},
 	}
 
-	_, err := runner.Run(s.URL, step)
+	config := workflow.HTTPConfig{BaseURL: s.URL}
+	_, err := runner.Run(config, step)
 	if err != nil {
 		t.Fatalf("Run failed: %v", err)
 	}
