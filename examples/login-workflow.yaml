@@ -20,7 +20,7 @@ steps:
       body: |
         {
           "email": "debs@gmail.com",
-          "password": "Password@123"
+          "password": "Password@1234"
         }
     extract:
       accessToken: res.data.data.accessToken
