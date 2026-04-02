@@ -31,7 +31,6 @@ func (e *AssertionEngine) Check(rule workflow.AssertRule, actual any) error {
 	expectedValue := rule.Value
 	if s, ok := rule.Value.(string); ok {
 		rendered := template.Render(s, e.state)
-		// Try to handle numeric strings that were rendered from numbers
 		expectedValue = rendered
 	}
 
@@ -50,6 +49,17 @@ func (e *AssertionEngine) Check(rule workflow.AssertRule, actual any) error {
 		}
 	} else {
 		actual = data
+	}
+
+	// Type matching for numeric comparisons
+	if rule.Op == "eq" || rule.Op == "==" || rule.Op == "=" {
+		if aNum, ok1 := e.toFloat(actual); ok1 {
+			if eNum, ok2 := e.toFloat(expectedValue); ok2 {
+				if aNum == eNum {
+					return nil
+				}
+			}
+		}
 	}
 
 	switch rule.Op {
@@ -126,6 +136,11 @@ func (e *AssertionEngine) toFloat(v any) (float64, bool) {
 		return val, true
 	case float32:
 		return float64(val), true
+	case string:
+		var f float64
+		if _, err := fmt.Sscanf(val, "%f", &f); err == nil {
+			return f, true
+		}
 	}
 	return 0, false
 }

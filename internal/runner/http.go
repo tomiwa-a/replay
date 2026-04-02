@@ -2,6 +2,7 @@ package runner
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -20,8 +21,11 @@ type HTTPRunner struct {
 }
 
 func NewHTTPRunner(s *state.Store) *HTTPRunner {
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
 	return &HTTPRunner{
-		client: &http.Client{},
+		client: &http.Client{Transport: tr},
 		state:  s,
 	}
 }
