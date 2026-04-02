@@ -55,20 +55,20 @@ func (e *AssertionEngine) Check(rule workflow.AssertRule, actual any) error {
 	switch rule.Op {
 	case "eq", "==", "=":
 		if !reflect.DeepEqual(actual, expectedValue) {
-			return fmt.Errorf("expected %v to equal %v", actual, expectedValue)
+			return fmt.Errorf("expected %v (%s) to equal %v", actual, rule.Path, expectedValue)
 		}
 	case "ne", "!=", "<>":
 		if reflect.DeepEqual(actual, expectedValue) {
-			return fmt.Errorf("expected %v to not equal %v", actual, expectedValue)
+			return fmt.Errorf("expected %v (%s) to not equal %v", actual, rule.Path, expectedValue)
 		}
 	case "gt", ">":
-		return e.compare(actual, expectedValue, "gt")
+		return e.compare(actual, expectedValue, "gt", rule.Path)
 	case "lt", "<":
-		return e.compare(actual, expectedValue, "lt")
+		return e.compare(actual, expectedValue, "lt", rule.Path)
 	case "ge", ">=":
-		return e.compare(actual, expectedValue, "ge")
+		return e.compare(actual, expectedValue, "ge", rule.Path)
 	case "le", "<=":
-		return e.compare(actual, expectedValue, "le")
+		return e.compare(actual, expectedValue, "le", rule.Path)
 	case "contains":
 		sActual, ok1 := actual.(string)
 		sExpected, ok2 := expectedValue.(string)
@@ -76,11 +76,11 @@ func (e *AssertionEngine) Check(rule workflow.AssertRule, actual any) error {
 			return fmt.Errorf("contains operator requires string values, got %T and %T", actual, expectedValue)
 		}
 		if !strings.Contains(sActual, sExpected) {
-			return fmt.Errorf("expected %q to contain %q", sActual, sExpected)
+			return fmt.Errorf("expected %q (%s) to contain %q", sActual, rule.Path, sExpected)
 		}
 	case "not_null":
 		if actual == nil {
-			return fmt.Errorf("expected value to be not null")
+			return fmt.Errorf("expected %s to be not null", rule.Path)
 		}
 	default:
 		return fmt.Errorf("unsupported operator: %s", rule.Op)
@@ -88,29 +88,29 @@ func (e *AssertionEngine) Check(rule workflow.AssertRule, actual any) error {
 	return nil
 }
 
-func (e *AssertionEngine) compare(actual, expected any, op string) error {
+func (e *AssertionEngine) compare(actual, expected any, op, path string) error {
 	v1, ok1 := e.toFloat(actual)
 	v2, ok2 := e.toFloat(expected)
 	if !ok1 || !ok2 {
-		return fmt.Errorf("%s operator requires numeric values, got %T and %T", op, actual, expected)
+		return fmt.Errorf("%s operator requires numeric values, got %T and %T at %s", op, actual, expected, path)
 	}
 
 	switch op {
 	case "gt":
 		if !(v1 > v2) {
-			return fmt.Errorf("expected %v to be greater than %v", v1, v2)
+			return fmt.Errorf("expected %v (%s) to be greater than %v", v1, path, v2)
 		}
 	case "lt":
 		if !(v1 < v2) {
-			return fmt.Errorf("expected %v to be less than %v", v1, v2)
+			return fmt.Errorf("expected %v (%s) to be less than %v", v1, path, v2)
 		}
 	case "ge":
 		if !(v1 >= v2) {
-			return fmt.Errorf("expected %v to be greater than or equal to %v", v1, v2)
+			return fmt.Errorf("expected %v (%s) to be greater than or equal to %v", v1, path, v2)
 		}
 	case "le":
 		if !(v1 <= v2) {
-			return fmt.Errorf("expected %v to be less than or equal to %v", v1, v2)
+			return fmt.Errorf("expected %v (%s) to be less than or equal to %v", v1, path, v2)
 		}
 	}
 	return nil

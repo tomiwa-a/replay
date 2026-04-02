@@ -11,10 +11,10 @@ import (
 var concurrency int
 
 var runCmd = &cobra.Command{
-	Use:   "run <workflow.yaml>...",
-	Short: "Execute one or more workflow files",
-	Args:  cobra.MinimumNArgs(1),
-	SilenceUsage: true,
+	Use:           "run <workflow.yaml>...",
+	Short:         "Execute one or more workflow files",
+	Args:          cobra.MinimumNArgs(1),
+	SilenceUsage:  true,
 	SilenceErrors: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		e := engine.New()
