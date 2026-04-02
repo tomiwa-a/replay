@@ -5,7 +5,7 @@ version: v0.1
 config:
   http:
     base_url: https://localhost:5001
-    debug: true
+    # debug: true
 
 steps:
   - name: Login as Vendor
@@ -53,4 +53,8 @@ steps:
       - name: Print Staff Member Info
         type: print
         message: "- {{staff.firstName}} {{staff.lastName}} ({{staff.email}})"
+
+      - name: Save Staff to File
+        type: shell
+        command: "echo '- {{staff.firstName}} {{staff.lastName}} ({{staff.email}})' >> staff_list.txt"
 
