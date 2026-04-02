@@ -1,0 +1,40 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/tomiwa-a/replay/main/schema.json
+name: test_if_and_call
+config:
+  http:
+    base_url: https://jsonplaceholder.typicode.com
+
+steps:
+  - name: setup_vars
+    type: shell
+    command: "echo '{\"status\":\"ready\"}'"
+    extract:
+      test_val: "res.stdout.status"
+
+  - name: test_if_true
+    type: if
+    condition: ["test_val", "==", "ready"]
+    then:
+      - name: print_success
+        type: print
+        message: "Condition met: status is ready!"
+
+  - name: test_if_false
+    type: if
+    condition: ["test_val", "==", "wrong"]
+    then:
+      - name: print_fail
+        type: print
+        message: "This should not print"
+    else:
+      - name: print_else
+        type: print
+        message: "Condition not met: else branch working!"
+
+  - name: test_call_other
+    type: call
+    file: examples/login-workflow.yaml
+    target: verify_token_extraction
+    with:
+      status: "Fake200"
+      access_token: "FakeToken"

@@ -68,8 +68,14 @@ func Workflow(wf workflow.Workflow) error {
 		case workflow.StepTypeLoop:
 			err := validateLoopStep(stepPath, step)
 			errs = append(errs, err...)
+		case workflow.StepTypeCall:
+			err := validateCallStep(stepPath, step)
+			errs = append(errs, err...)
+		case workflow.StepTypeIf:
+			err := validateIfStep(stepPath, step)
+			errs = append(errs, err...)
 		default:
-			errs = append(errs, ValidationError{Path: stepPath + ".type", Message: "must be one of: http, db, shell, print, loop"})
+			errs = append(errs, ValidationError{Path: stepPath + ".type", Message: "must be one of: http, db, shell, print, loop, call, if"})
 		}
 
 		err := validateExtract(stepPath, step.Extract)
@@ -285,6 +291,25 @@ func validateAssert(stepPath string, rules []workflow.AssertRule) Errors {
 		if strings.TrimSpace(rule.Op) == "" {
 			errs = append(errs, ValidationError{Path: rulePath + ".op", Message: "is required"})
 		}
+	}
+	return errs
+}
+
+func validateCallStep(stepPath string, step workflow.Step) Errors {
+	var errs Errors
+	if strings.TrimSpace(step.File) == "" {
+		errs = append(errs, ValidationError{Path: stepPath + ".file", Message: "is required for call step"})
+	}
+	return errs
+}
+
+func validateIfStep(stepPath string, step workflow.Step) Errors {
+	var errs Errors
+	if len(step.Condition) != 3 {
+		errs = append(errs, ValidationError{Path: stepPath + ".condition", Message: "must be in format [path, op, value]"})
+	}
+	if len(step.Then) == 0 {
+		errs = append(errs, ValidationError{Path: stepPath + ".then", Message: "must contain at least one step"})
 	}
 	return errs
 }
