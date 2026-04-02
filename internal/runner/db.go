@@ -53,13 +53,13 @@ func runPostgres(ctx context.Context, defaultDSN string, step workflow.Step, sto
 	// Capture all rows as a slice of maps
 	var results []map[string]any
 	fields := rows.FieldDescriptions()
-	
+
 	for rows.Next() {
 		values, err := rows.Values()
 		if err != nil {
 			return fmt.Errorf("failed to scan row: %w", err)
 		}
-		
+
 		row := make(map[string]any)
 		for i, field := range fields {
 			row[field.Name] = values[i]
@@ -130,7 +130,7 @@ func runRedis(ctx context.Context, defaultAddr string, step workflow.Step, store
 	if err == redis.Nil {
 		val = nil
 	}
-	
+
 	store.Set("db_results", val)
 
 	if len(step.Extract) > 0 {
@@ -139,7 +139,7 @@ func runRedis(ctx context.Context, defaultAddr string, step workflow.Step, store
 				store.Set(varName, val)
 				continue
 			}
-			
+
 			// If we got a complex structure (HGETALL etc), we might want to use JP
 			// For simple values, JP won't do much unless people expect results to be JSON strings
 			expr, err := jp.ParseString(path)

@@ -6,7 +6,7 @@ steps:
     shell:
       commands:
         - "echo 'line 1'"
-        - "echo '{\"foo\": \"bar\"}'"
+        - 'echo ''{"foo": "bar"}'''
     extract:
       foo_val: "$.foo"
 
@@ -19,5 +19,5 @@ steps:
     shell:
       command: "sleep 2"
       timeout: "1s"
-    # This step is expected to fail! 
+    # This step is expected to fail!
     # Use 'ignoreError: true' when implemented, for now we run it and expect a crash to prove timeout.

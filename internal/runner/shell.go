@@ -126,4 +126,3 @@ func Shell(step workflow.Step, store *state.Store) error {
 
 	return nil
 }
-
