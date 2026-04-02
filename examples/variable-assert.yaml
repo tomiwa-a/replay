@@ -1,0 +1,22 @@
+name: Variable Assertions & Ignore Error
+steps:
+  - name: Set Variable
+    type: shell
+    command: 'echo "{\"expected_name\": \"Bob\"}"'
+    extract:
+      target_name: "$.expected_name"
+
+  - name: Check Variable Assertion
+    type: shell
+    command: 'echo "{\"name\": \"Bob\"}"'
+    assert:
+      - ["$.name", "eq", "{{target_name}}"]
+
+  - name: Failing Step with Ignore Error
+    type: shell
+    command: "exit 1"
+    ignore_error: true
+
+  - name: Next Step After Failure
+    type: print
+    message: "I ran even though the previous step failed!"

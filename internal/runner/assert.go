@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/ohler55/ojg/jp"
+	"github.com/replay/replay/internal/template"
 	"github.com/replay/replay/internal/workflow"
 )
 
@@ -24,6 +25,14 @@ func (e *AssertionEngine) Check(rule workflow.AssertRule, actual any) error {
 		json.Unmarshal([]byte(s), &data)
 	} else {
 		data = actual
+	}
+
+	// Resolve variables in the expected Value if it's a string
+	expectedValue := rule.Value
+	if s, ok := rule.Value.(string); ok {
+		rendered := template.Render(s, e.state)
+		// Try to handle numeric strings that were rendered from numbers
+		expectedValue = rendered
 	}
 
 	if rule.Path != "" && rule.Path != "$" {
@@ -45,22 +54,22 @@ func (e *AssertionEngine) Check(rule workflow.AssertRule, actual any) error {
 
 	switch rule.Op {
 	case "eq":
-		if !reflect.DeepEqual(actual, rule.Value) {
-			return fmt.Errorf("expected %v to equal %v", actual, rule.Value)
+		if !reflect.DeepEqual(actual, expectedValue) {
+			return fmt.Errorf("expected %v to equal %v", actual, expectedValue)
 		}
 	case "ne":
-		if reflect.DeepEqual(actual, rule.Value) {
-			return fmt.Errorf("expected %v to not equal %v", actual, rule.Value)
+		if reflect.DeepEqual(actual, expectedValue) {
+			return fmt.Errorf("expected %v to not equal %v", actual, expectedValue)
 		}
 	case "gt":
-		return e.compare(actual, rule.Value, "gt")
+		return e.compare(actual, expectedValue, "gt")
 	case "lt":
-		return e.compare(actual, rule.Value, "lt")
+		return e.compare(actual, expectedValue, "lt")
 	case "contains":
 		sActual, ok1 := actual.(string)
-		sExpected, ok2 := rule.Value.(string)
+		sExpected, ok2 := expectedValue.(string)
 		if !ok1 || !ok2 {
-			return fmt.Errorf("contains operator requires string values, got %T and %T", actual, rule.Value)
+			return fmt.Errorf("contains operator requires string values, got %T and %T", actual, expectedValue)
 		}
 		if !strings.Contains(sActual, sExpected) {
 			return fmt.Errorf("expected %q to contain %q", sActual, sExpected)
