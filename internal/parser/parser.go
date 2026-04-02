@@ -11,6 +11,12 @@ import (
 
 const defaultVersion = "v0.1"
 
+type ParserWrapper struct{}
+
+func (p *ParserWrapper) LoadFromFile(path string) ([]workflow.Workflow, error) {
+	return LoadFromFile(path)
+}
+
 func LoadFromFile(path string) ([]workflow.Workflow, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {

@@ -14,13 +14,18 @@ import (
 	"github.com/replay/replay/internal/workflow"
 )
 
+type Parser interface {
+	LoadFromFile(path string) ([]workflow.Workflow, error)
+}
+
 type Engine struct {
 	state      *state.Store
 	httpRunner *runner.HTTPRunner
 	reporter   *reporter.Reporter
+	parser     Parser
 }
 
-func New() *Engine {
+func New(p Parser) *Engine {
 	s := state.NewStore()
 	rep := reporter.New()
 	for _, env := range os.Environ() {
@@ -33,6 +38,7 @@ func New() *Engine {
 		state:      s,
 		httpRunner: runner.NewHTTPRunner(s, rep),
 		reporter:   rep,
+		parser:     p,
 	}
 }
 
@@ -87,6 +93,8 @@ func (e *Engine) ExecuteSteps(steps []workflow.Step, config workflow.Config) err
 			err = e.ExecuteLoop(step, config)
 		case workflow.StepTypeCall:
 			err = e.ExecuteCall(step, config)
+		case workflow.StepTypeIf:
+			err = e.ExecuteIf(step, config)
 		default:
 			err = fmt.Errorf("step type %q not yet implemented", step.Type)
 		}
@@ -154,8 +162,64 @@ func (e *Engine) ExecuteCall(step workflow.Step, config workflow.Config) error {
 		return fmt.Errorf("call step requires 'file' field")
 	}
 
-	// Load the target workflow file
-	// Note: We need a way to access the parser. Since engine is internal, maybe we add it or pass it.
-	// For now, satisfy the interface.
-	return fmt.Errorf("cross-file call to %s (target: %s) not fully implemented in engine yet", filePath, target)
+	wfs, err := e.parser.LoadFromFile(filePath)
+	if err != nil {
+		return fmt.Errorf("failed to load called file %q: %w", filePath, err)
+	}
+
+	// Apply input variables from 'with' block
+	for k, v := range step.With {
+		// Interpolate the value before setting it
+		if s, ok := v.(string); ok {
+			e.state.Set(k, template.Render(s, vars))
+		} else {
+			e.state.Set(k, v)
+		}
+	}
+
+	// Case 1: Call a specific step within a file
+	if target != "" {
+		for _, wf := range wfs {
+			for _, s := range wf.Steps {
+				if s.Name == target {
+					// Found the target step, execute ONLY this step
+					return e.ExecuteSteps([]workflow.Step{s}, wf.Config)
+				}
+			}
+		}
+		return fmt.Errorf("step %q not found in file %q", target, filePath)
+	}
+
+	// Case 2: Call the whole workflow(s)
+	for _, wf := range wfs {
+		if err := e.ExecuteSteps(wf.Steps, wf.Config); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (e *Engine) ExecuteIf(step workflow.Step, config workflow.Config) error {
+	vars := e.state.All()
+	if len(step.Condition) != 3 {
+		return fmt.Errorf("if step condition must be in format [path, op, value]")
+	}
+
+	ae := runner.NewAssertionEngine(vars)
+	rule := workflow.AssertRule{
+		Path:  step.Condition[0],
+		Op:    step.Condition[1],
+		Value: step.Condition[2],
+	}
+
+	// Use empty data since assertions are against state path
+	err := ae.Check(rule, nil)
+	if err == nil {
+		// Condition met (then)
+		return e.ExecuteSteps(step.Then, config)
+	} else {
+		// Condition failed (else)
+		return e.ExecuteSteps(step.Else, config)
+	}
 }

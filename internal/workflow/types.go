@@ -39,6 +39,7 @@ const (
 	StepTypePrint StepType = "print"
 	StepTypeLoop  StepType = "loop"
 	StepTypeCall  StepType = "call"
+	StepTypeIf    StepType = "if"
 )
 
 type Step struct {
@@ -52,6 +53,11 @@ type Step struct {
 	File   string         `yaml:"file,omitempty" json:"file,omitempty"`
 	Target string         `yaml:"target,omitempty" json:"target,omitempty"`
 	With   map[string]any `yaml:"with,omitempty" json:"with,omitempty"`
+
+	// If support
+	Condition []string `yaml:"condition,omitempty" json:"condition,omitempty"`
+	Then      []Step   `yaml:"then,omitempty" json:"then,omitempty"`
+	Else      []Step   `yaml:"else,omitempty" json:"else,omitempty"`
 
 	// Loop support
 	ForEach string `yaml:"foreach,omitempty" json:"foreach,omitempty"`

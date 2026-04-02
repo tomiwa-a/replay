@@ -17,7 +17,8 @@ var runCmd = &cobra.Command{
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		e := engine.New()
+		p := &parser.ParserWrapper{}
+		e := engine.New(p)
 
 		// Allow manual override for the engine too
 		if debug {
