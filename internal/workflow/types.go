@@ -31,8 +31,10 @@ type RedisConfig struct {
 type StepType string
 
 const (
-	StepTypeHTTP StepType = "http"
-	StepTypeDB   StepType = "db"
+	StepTypeHTTP  StepType = "http"
+	StepTypeDB    StepType = "db"
+	StepTypeShell StepType = "shell"
+	StepTypePrint StepType = "print"
 )
 
 type Step struct {
@@ -40,6 +42,8 @@ type Step struct {
 	Type    StepType          `yaml:"type" json:"type"`
 	Request *HTTPRequest      `yaml:"request,omitempty" json:"request,omitempty"`
 	DB      *DBRequest        `yaml:"db,omitempty" json:"db,omitempty"`
+	Shell   *ShellRequest     `yaml:"shell,omitempty" json:"shell,omitempty"`
+	Message string            `yaml:"message,omitempty" json:"message,omitempty"`
 	Extract map[string]string `yaml:"extract,omitempty" json:"extract,omitempty"`
 	Assert  []AssertRule      `yaml:"assert,omitempty" json:"assert,omitempty"`
 }
@@ -49,6 +53,11 @@ type HTTPRequest struct {
 	URL     string            `yaml:"url" json:"url"`
 	Headers map[string]string `yaml:"headers,omitempty" json:"headers,omitempty"`
 	Body    any               `yaml:"body,omitempty" json:"body,omitempty"`
+}
+
+type ShellRequest struct {
+	Command string `yaml:"command" json:"command"`
+	Dir     string `yaml:"dir,omitempty" json:"dir,omitempty"`
 }
 
 type DBEngine string

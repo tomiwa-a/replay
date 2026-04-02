@@ -1,0 +1,40 @@
+name: "Phase 4 - Shell and Print Test"
+
+steps:
+  - name: "Print initial info"
+    type: "print"
+    message: "Starting the shell integration test with workflow: {{ name }}"
+
+  - name: "Run listing command"
+    type: "shell"
+    shell:
+      command: "ls -la"
+    extract:
+      ls_output: "$"
+
+  - name: "Show LS output (first few lines)"
+    type: "print"
+    message: "LS output stored in state."
+
+  - name: "Generate JSON from Shell"
+    type: "shell"
+    shell:
+      command: 'echo ''{"status": "success", "data": {"id": 123, "meta": "test"}}'''
+    extract:
+      job_id: "$.data.id"
+      status: "$.status"
+
+  - name: "Print extracted data"
+    type: "print"
+    message: "Extraction successful: ID is {{ job_id }} and status is {{ status }}"
+
+  - name: "Environment check"
+    type: "shell"
+    shell:
+      command: "echo $USER"
+    extract:
+      current_user: "$"
+
+  - name: "Print user"
+    type: "print"
+    message: "The current system user is {{ current_user }}"

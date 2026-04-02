@@ -58,8 +58,14 @@ func Workflow(wf workflow.Workflow) error {
 		case workflow.StepTypeDB:
 			err := validateDBStep(stepPath, step)
 			errs = append(errs, err...)
+		case workflow.StepTypeShell:
+			err := validateShellStep(stepPath, step)
+			errs = append(errs, err...)
+		case workflow.StepTypePrint:
+			err := validatePrintStep(stepPath, step)
+			errs = append(errs, err...)
 		default:
-			errs = append(errs, ValidationError{Path: stepPath + ".type", Message: "must be one of: http, db"})
+			errs = append(errs, ValidationError{Path: stepPath + ".type", Message: "must be one of: http, db, shell, print"})
 		}
 
 		err := validateExtract(stepPath, step.Extract)
@@ -132,6 +138,48 @@ func validateDBStep(stepPath string, step workflow.Step) Errors {
 
 	if step.Request != nil {
 		errs = append(errs, ValidationError{Path: stepPath + ".request", Message: "must be empty for db step"})
+	}
+
+	return errs
+}
+
+func validateShellStep(stepPath string, step workflow.Step) Errors {
+	var errs Errors
+
+	if step.Shell == nil {
+		errs = append(errs, ValidationError{Path: stepPath + ".shell", Message: "is required for shell step"})
+		return errs
+	}
+
+	if strings.TrimSpace(step.Shell.Command) == "" {
+		errs = append(errs, ValidationError{Path: stepPath + ".shell.command", Message: "is required"})
+	}
+
+	if step.Request != nil {
+		errs = append(errs, ValidationError{Path: stepPath + ".request", Message: "must be empty for shell step"})
+	}
+	if step.DB != nil {
+		errs = append(errs, ValidationError{Path: stepPath + ".db", Message: "must be empty for shell step"})
+	}
+
+	return errs
+}
+
+func validatePrintStep(stepPath string, step workflow.Step) Errors {
+	var errs Errors
+
+	if strings.TrimSpace(step.Message) == "" {
+		errs = append(errs, ValidationError{Path: stepPath + ".message", Message: "is required for print step"})
+	}
+
+	if step.Request != nil {
+		errs = append(errs, ValidationError{Path: stepPath + ".request", Message: "must be empty for print step"})
+	}
+	if step.DB != nil {
+		errs = append(errs, ValidationError{Path: stepPath + ".db", Message: "must be empty for print step"})
+	}
+	if step.Shell != nil {
+		errs = append(errs, ValidationError{Path: stepPath + ".shell", Message: "must be empty for print step"})
 	}
 
 	return errs

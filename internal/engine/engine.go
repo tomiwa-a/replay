@@ -33,17 +33,36 @@ func New() *Engine {
 
 func (e *Engine) Run(wf workflow.Workflow) error {
 	vars := e.state.All()
+	// Render workflow name if it contains variables
 	wfName := template.Render(wf.Name, vars)
+	if wfName == "" {
+		wfName = "nameless workflow"
+	}
 
 	log.Printf("Starting workflow: %s", wfName)
 
 	for _, step := range wf.Steps {
+		vars = e.state.All()
 		stepName := template.Render(step.Name, vars)
+		if stepName == "" {
+			stepName = fmt.Sprintf("step %s", step.Type)
+		}
+
 		log.Printf("Running step: %s [%s]", stepName, step.Type)
 
 		switch step.Type {
 		case workflow.StepTypeHTTP:
 			_, err := e.httpRunner.Run(wf.Config.HTTP.BaseURL, step)
+			if err != nil {
+				return fmt.Errorf("step %q failed: %w", stepName, err)
+			}
+		case workflow.StepTypeShell:
+			err := runner.Shell(step, e.state)
+			if err != nil {
+				return fmt.Errorf("step %q failed: %w", stepName, err)
+			}
+		case workflow.StepTypePrint:
+			err := runner.Print(step, e.state)
 			if err != nil {
 				return fmt.Errorf("step %q failed: %w", stepName, err)
 			}
