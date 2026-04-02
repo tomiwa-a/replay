@@ -11,32 +11,34 @@ import (
 
 const defaultVersion = "v0.1"
 
-func LoadFromFile(path string) (workflow.Workflow, error) {
+func LoadFromFile(path string) ([]workflow.Workflow, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return workflow.Workflow{}, fmt.Errorf("read workflow file %q: %w", path, err)
+		return nil, fmt.Errorf("read workflow file %q: %w", path, err)
 	}
 
-	wf, err := LoadFromBytes(data)
-	if err != nil {
-		return workflow.Workflow{}, fmt.Errorf("parse workflow file %q: %w", path, err)
-	}
-
-	return wf, nil
+	return LoadFromBytes(data)
 }
 
-func LoadFromBytes(data []byte) (workflow.Workflow, error) {
+func LoadFromBytes(data []byte) ([]workflow.Workflow, error) {
 	decoder := yaml.NewDecoder(bytes.NewReader(data))
 	decoder.KnownFields(true)
 
-	var wf workflow.Workflow
-	if err := decoder.Decode(&wf); err != nil {
-		return workflow.Workflow{}, err
+	var wfs []workflow.Workflow
+	for {
+		var wf workflow.Workflow
+		if err := decoder.Decode(&wf); err != nil {
+			if err.Error() == "EOF" {
+				break
+			}
+			return nil, err
+		}
+
+		if wf.Version == "" {
+			wf.Version = defaultVersion
+		}
+		wfs = append(wfs, wf)
 	}
 
-	if wf.Version == "" {
-		wf.Version = defaultVersion
-	}
-
-	return wf, nil
+	return wfs, nil
 }

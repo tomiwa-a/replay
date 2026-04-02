@@ -35,7 +35,7 @@ func New() *Engine {
 	}
 }
 
-func (e *Engine) Run(wf workflow.Workflow) error {
+func (e *Engine) Run(wf *workflow.Workflow) error {
 	vars := e.state.All()
 	// Ensure the workflow name itself is in the state for interpolation
 	e.state.Set("name", wf.Name)

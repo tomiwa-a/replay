@@ -13,16 +13,17 @@ var validateCmd = &cobra.Command{
 	Short: "Validate a workflow file",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		wf, err := parser.LoadFromFile(args[0])
+		wfs, err := parser.LoadFromFile(args[0])
 		if err != nil {
 			return err
 		}
 
-		if err := validate.Workflow(wf); err != nil {
-			return err
+		for _, wf := range wfs {
+			if err := validate.Workflow(wf); err != nil {
+				return err
+			}
+			fmt.Fprintf(cmd.OutOrStdout(), "valid workflow: %s (%d steps)\n", wf.Name, len(wf.Steps))
 		}
-
-		fmt.Fprintf(cmd.OutOrStdout(), "valid workflow: %s (%d steps)\n", wf.Name, len(wf.Steps))
 		return nil
 	},
 }
