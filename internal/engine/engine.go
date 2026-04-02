@@ -33,6 +33,9 @@ func New() *Engine {
 
 func (e *Engine) Run(wf workflow.Workflow) error {
 	vars := e.state.All()
+	// Ensure the workflow name itself is in the state for interpolation
+	e.state.Set("name", wf.Name)
+	
 	// Render workflow name if it contains variables
 	wfName := template.Render(wf.Name, vars)
 	if wfName == "" {
