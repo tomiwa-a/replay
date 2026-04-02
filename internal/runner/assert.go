@@ -53,18 +53,22 @@ func (e *AssertionEngine) Check(rule workflow.AssertRule, actual any) error {
 	}
 
 	switch rule.Op {
-	case "eq":
+	case "eq", "==", "=":
 		if !reflect.DeepEqual(actual, expectedValue) {
 			return fmt.Errorf("expected %v to equal %v", actual, expectedValue)
 		}
-	case "ne":
+	case "ne", "!=", "<>":
 		if reflect.DeepEqual(actual, expectedValue) {
 			return fmt.Errorf("expected %v to not equal %v", actual, expectedValue)
 		}
-	case "gt":
+	case "gt", ">":
 		return e.compare(actual, expectedValue, "gt")
-	case "lt":
+	case "lt", "<":
 		return e.compare(actual, expectedValue, "lt")
+	case "ge", ">=":
+		return e.compare(actual, expectedValue, "ge")
+	case "le", "<=":
+		return e.compare(actual, expectedValue, "le")
 	case "contains":
 		sActual, ok1 := actual.(string)
 		sExpected, ok2 := expectedValue.(string)
@@ -99,6 +103,14 @@ func (e *AssertionEngine) compare(actual, expected any, op string) error {
 	case "lt":
 		if !(v1 < v2) {
 			return fmt.Errorf("expected %v to be less than %v", v1, v2)
+		}
+	case "ge":
+		if !(v1 >= v2) {
+			return fmt.Errorf("expected %v to be greater than or equal to %v", v1, v2)
+		}
+	case "le":
+		if !(v1 <= v2) {
+			return fmt.Errorf("expected %v to be less than or equal to %v", v1, v2)
 		}
 	}
 	return nil
