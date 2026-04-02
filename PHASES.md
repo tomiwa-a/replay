@@ -109,8 +109,22 @@ Status: **In-Progress** 🏗️
 - [ ] **Parallel Command Execution**
   - [ ] Implement `parallel: true` for shell steps with multiple commands
 - [ ] **Cross-file Imports**
-  - [ ] Ability to `include` steps from other workflow files
-- [x] **Release Preparation**
-  - [x] GitHub Actions for cross-platform builds (Linux, macOS, Windows)
-  - [x] JSON Schema for editor autocomplete and AI awareness
-  - [ ] Documentation for Open Source contributors
+  - [ ] Ability to `include` steps from other workflow files (e.g., `include: shared_auth.yaml`)
+  - [ ] Support parameter passing for included files
+- [ ] **Global Variable Persistence**
+  - [ ] Shared state across multiple workflow files in a single run
+
+---
+
+## Phase 7: Conditional Logic & Advanced Orchestration
+
+Status: **Planned** 📅
+
+- [ ] **Step-Level Branching (`type: if`)**
+  - [ ] Implement `if` condition using common operators (`==`, `!=`, `>`, `contains`)
+  - [ ] Support checking if a value exists in an array (`in`)
+  - [ ] Recursive `steps` support inside `then` and `else` blocks
+- [ ] **Advanced Variable Operations**
+  - [ ] Built-in functions (e.g., `len(list)`, `now()`)
+- [ ] **Error Handling Hooks**
+  - [ ] `on_error` global and step-level callbacks (e.g., alert on failure)

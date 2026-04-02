@@ -38,6 +38,7 @@ const (
 	StepTypeShell StepType = "shell"
 	StepTypePrint StepType = "print"
 	StepTypeLoop  StepType = "loop"
+	StepTypeCall  StepType = "call"
 )
 
 type Step struct {
@@ -46,6 +47,11 @@ type Step struct {
 	Request *HTTPRequest  `yaml:"request,omitempty" json:"request,omitempty"`
 	DB      *DBRequest    `yaml:"db,omitempty" json:"db,omitempty"`
 	Shell   *ShellRequest `yaml:"shell,omitempty" json:"shell,omitempty"`
+
+	// Call support
+	File   string         `yaml:"file,omitempty" json:"file,omitempty"`
+	Target string         `yaml:"target,omitempty" json:"target,omitempty"`
+	With   map[string]any `yaml:"with,omitempty" json:"with,omitempty"`
 
 	// Loop support
 	ForEach string `yaml:"foreach,omitempty" json:"foreach,omitempty"`
