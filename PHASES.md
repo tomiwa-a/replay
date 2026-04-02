@@ -60,18 +60,22 @@ Status: **Completed** ✅
 
 ## Phase 4: Shell & Database Integration
 
-Status: **Planned** 📅
+Status: **In-Progress** 🏗️
 
 - [x] **Shell Runner (The "Any App" Runner)**
   - [x] Implement `type: shell` to execute CLI tools (`docker`, `sqlcmd`, etc.)
   - [x] Capture `stdout` and `stderr` for extraction/assertion
-- [x] **PostgreSQL Native Adapter**
+  - [ ] Add execution timeout support (e.g., `timeout: 30s`)
+  - [ ] Support multi-command sequential execution (list of commands)
+- [ ] **PostgreSQL Native Adapter**
   - [x] Integrate `pgx` for connection pooling
   - [x] Implement raw SQL query execution
   - [x] Support row-to-JSON mapping for extraction
-- [x] **Redis Native Adapter**
-  - [x] Integrate `go-redis`
-  - [x] Implement basic commands (`SET`, `GET`, `DEL`, `EXISTS`)
+- [ ] **Redis Native Adapter**
+  - [ ] Integrate `go-redis`
+  - [ ] Implement basic commands (`SET`, `GET`, `DEL`, `EXISTS`)
+- [ ] **State persistence and isolation**
+  - [ ] Ensure DB results can be referenced accurately in subsequent steps
 
 ---
 
@@ -79,12 +83,12 @@ Status: **Planned** 📅
 
 Status: **Planned** 📅
 
-- [x] **Assertion Engine**
-  - [x] Implement operators: `eq`, `ne`, `gt`, `lt`, `contains`, `not_null`
-  - [x] Support JSONPath targeting in assertions
-- [x] **Clean Terminal Reporter**
-  - [x] Implement colored output (Pass/Fail)
-  - [x] Show step duration and meaningful error snippets on failure
+- [ ] **Assertion Engine**
+  - [ ] Implement operators: `eq`, `ne`, `gt`, `lt`, `contains`, `not_null`
+  - [ ] Support JSONPath targeting in assertions
+- [ ] **Clean Terminal Reporter**
+  - [ ] Implement colored output (Pass/Fail)
+  - [ ] Show step duration and meaningful error snippets on failure
 
 ---
 
@@ -92,12 +96,14 @@ Status: **Planned** 📅
 
 Status: **Planned** 📅
 
-- [x] **Concurrency Engine**
-  - [x] Implement worker pool for multi-workflow execution
-  - [x] Add `--concurrency N` flag
-  - [x] Add `--fail-fast` toggle
-- [x] **Cross-file Imports**
-  - [x] Ability to `include` steps from other workflow files
-- [x] **Release Preparation**
-  - [x] GitHub Actions for cross-platform builds (Linux, macOS, Windows)
-  - [x] Documentation for Open Source contributors
+- [ ] **Concurrency Engine**
+  - [ ] Implement worker pool for multi-workflow execution
+  - [ ] Add `--concurrency N` flag
+  - [ ] Add `--fail-fast` toggle
+- [ ] **Parallel Command Execution**
+  - [ ] Implement `parallel: true` for shell steps with multiple commands
+- [ ] **Cross-file Imports**
+  - [ ] Ability to `include` steps from other workflow files
+- [ ] **Release Preparation**
+  - [ ] GitHub Actions for cross-platform builds (Linux, macOS, Windows)
+  - [ ] Documentation for Open Source contributors
