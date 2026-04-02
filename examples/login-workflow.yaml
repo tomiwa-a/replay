@@ -47,9 +47,10 @@ steps:
       - ["res.status", "==", "200"]
 
   - name: Show Staff Names and Emails
-    type: print
-    message: |
-      Staff Members:
-      {{#each staffList}}
-      - {{firstName}} {{lastName}} ({{email}})
-      {{/each}}
+    type: loop
+    foreach: staffList, staff
+    steps:
+      - name: Print Staff Member Info
+        type: print
+        message: "- {{staff.firstName}} {{staff.lastName}} ({{staff.email}})"
+
