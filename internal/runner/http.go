@@ -10,27 +10,30 @@ import (
 	"strings"
 
 	"github.com/ohler55/ojg/jp"
+	"github.com/replay/replay/internal/reporter"
 	"github.com/replay/replay/internal/state"
 	"github.com/replay/replay/internal/template"
 	"github.com/replay/replay/internal/workflow"
 )
 
 type HTTPRunner struct {
-	client *http.Client
-	state  *state.Store
+	client   *http.Client
+	state    *state.Store
+	reporter *reporter.Reporter
 }
 
-func NewHTTPRunner(s *state.Store) *HTTPRunner {
+func NewHTTPRunner(s *state.Store, rep *reporter.Reporter) *HTTPRunner {
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
 	return &HTTPRunner{
-		client: &http.Client{Transport: tr},
-		state:  s,
+		client:   &http.Client{Transport: tr},
+		state:    s,
+		reporter: rep,
 	}
 }
 
-func (r *HTTPRunner) Run(base string, step workflow.Step) (any, error) {
+func (r *HTTPRunner) Run(config workflow.HTTPConfig, step workflow.Step) (any, error) {
 	if step.Request == nil {
 		return nil, fmt.Errorf("http step request must not be nil")
 	}
@@ -38,14 +41,35 @@ func (r *HTTPRunner) Run(base string, step workflow.Step) (any, error) {
 	vars := r.state.All()
 	url := template.Render(step.Request.URL, vars)
 	if !strings.HasPrefix(url, "http") {
-		url = fmt.Sprintf("%s%s", base, url)
+		url = fmt.Sprintf("%s%s", config.BaseURL, url)
 	}
 
 	var body io.Reader
+	var bodyRaw any
 	if step.Request.Body != nil {
-		b, _ := json.Marshal(step.Request.Body)
-		bodyContent := template.Render(string(b), vars)
-		body = bytes.NewReader([]byte(bodyContent))
+		bodyRaw = step.Request.Body
+		// If it's a string, we might need to interpolate and it might be raw JSON
+		if s, ok := bodyRaw.(string); ok {
+			bodyContent := template.Render(s, vars)
+			body = bytes.NewReader([]byte(bodyContent))
+			bodyRaw = bodyContent
+		} else {
+			// If it's a map/slice, marshal to JSON, then interpolate
+			b, _ := json.Marshal(bodyRaw)
+			bodyContent := template.Render(string(b), vars)
+			body = bytes.NewReader([]byte(bodyContent))
+			// Decode back for cleaner debug log
+			json.Unmarshal([]byte(bodyContent), &bodyRaw)
+		}
+	}
+
+	if config.Debug {
+		r.reporter.Debug("HTTP REQUEST", map[string]any{
+			"method":  step.Request.Method,
+			"url":     url,
+			"headers": step.Request.Headers,
+			"body":    bodyRaw,
+		})
 	}
 
 	req, err := http.NewRequest(step.Request.Method, url, body)
@@ -65,6 +89,14 @@ func (r *HTTPRunner) Run(base string, step workflow.Step) (any, error) {
 	respBody, _ := io.ReadAll(resp.Body)
 	var decoded any
 	json.Unmarshal(respBody, &decoded)
+
+	if config.Debug {
+		r.reporter.Debug("HTTP RESPONSE", map[string]any{
+			"status":  resp.StatusCode,
+			"headers": resp.Header,
+			"body":    decoded,
+		})
+	}
 
 	result := map[string]any{
 		"status": resp.StatusCode,

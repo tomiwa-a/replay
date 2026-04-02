@@ -5,6 +5,7 @@ version: v0.1
 config:
   http:
     base_url: https://localhost:5001
+    debug: true
 
 steps:
   - name: Login as Vendor
@@ -24,7 +25,7 @@ steps:
       accessToken: res.data.data.accessToken
       status: res.status
     assert:
-      - ["res.status", "==", 200]
+      - ["res.status", "==", "200"]
       - ["res.data.data.accessToken", "!=", ""]
 
   - name: Verify Token Extraction

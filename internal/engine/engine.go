@@ -22,6 +22,7 @@ type Engine struct {
 
 func New() *Engine {
 	s := state.NewStore()
+	rep := reporter.New()
 	for _, env := range os.Environ() {
 		pair := strings.SplitN(env, "=", 2)
 		if len(pair) == 2 {
@@ -30,8 +31,8 @@ func New() *Engine {
 	}
 	return &Engine{
 		state:      s,
-		httpRunner: runner.NewHTTPRunner(s),
-		reporter:   reporter.New(),
+		httpRunner: runner.NewHTTPRunner(s, rep),
+		reporter:   rep,
 	}
 }
 
@@ -62,7 +63,7 @@ func (e *Engine) Run(wf *workflow.Workflow) error {
 		var err error
 		switch step.Type {
 		case workflow.StepTypeHTTP:
-			_, err = e.httpRunner.Run(wf.Config.HTTP.BaseURL, step)
+			_, err = e.httpRunner.Run(wf.Config.HTTP, step)
 		case workflow.StepTypeShell:
 			err = runner.Shell(step, e.state)
 		case workflow.StepTypeDB:

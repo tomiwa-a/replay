@@ -1,6 +1,7 @@
 package reporter
 
 import (
+	"encoding/json"
 	"fmt"
 	"time"
 )
@@ -22,8 +23,20 @@ func New() *Reporter {
 }
 
 func (r *Reporter) WorkflowStarted(name string) {
-	fmt.Printf("\n%s🚀 Starting workflow: %s%s%s\n", ColorBold, ColorBlue, name, ColorReset)
-	fmt.Println(stringsRepeat("-", 40))
+	fmt.Printf("\n%s🚀 Starting workflow: %s%s%s%s\n", ColorBold, ColorBlue, name, ColorReset, ColorReset)
+	fmt.Printf("%s\n", stringsRepeat("-", 40))
+}
+
+func (r *Reporter) Debug(title string, content any) {
+	fmt.Printf("\n%s[%s DEBUG]%s\n", ColorYellow, title, ColorReset)
+	switch v := content.(type) {
+	case string:
+		fmt.Printf("  %s\n", v)
+	default:
+		b, _ := json.MarshalIndent(v, "  ", "  ")
+		fmt.Printf("  %s\n", string(b))
+	}
+	fmt.Printf("%s\n", stringsRepeat("-", 40))
 }
 
 func (r *Reporter) StepStarted(name string, stepType string) {

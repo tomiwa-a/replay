@@ -18,6 +18,7 @@ type Config struct {
 
 type HTTPConfig struct {
 	BaseURL string `yaml:"base_url,omitempty" json:"base_url,omitempty"`
+	Debug   bool   `yaml:"debug,omitempty" json:"debug,omitempty"`
 }
 
 type PostgresConfig struct {
