@@ -15,6 +15,7 @@ steps:
       method: POST
       url: /auth/login
       headers:
+        x-VendorTag: "debs"
         Content-Type: application/json
       body: |
         {
@@ -31,3 +32,24 @@ steps:
   - name: Verify Token Extraction
     type: print
     message: "Status: {{status}}, Logged in successfully. Access Token: {{accessToken}}"
+
+  - name: List Staff Members
+    type: http
+    request:
+      method: GET
+      url: /staff?page=1&pageSize=10
+      headers:
+        Authorization: "Bearer {{accessToken}}"
+        x-VendorTag: "debs"
+    extract:
+      staffList: res.data.data
+    assert:
+      - ["res.status", "==", "200"]
+
+  - name: Show Staff Names and Emails
+    type: print
+    message: |
+      Staff Members:
+      {{#each staffList}}
+      - {{firstName}} {{lastName}} ({{email}})
+      {{/each}}
