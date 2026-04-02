@@ -8,6 +8,7 @@ import (
 
 func main() {
 	if err := cmd.Execute(); err != nil {
+		println("CRITICAL ERROR: " + err.Error())
 		os.Exit(1)
 	}
 }

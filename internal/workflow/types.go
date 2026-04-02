@@ -17,8 +17,9 @@ type Config struct {
 }
 
 type HTTPConfig struct {
-	BaseURL string `yaml:"base_url,omitempty" json:"base_url,omitempty"`
-	Debug   bool   `yaml:"debug,omitempty" json:"debug,omitempty"`
+	BaseURL string            `yaml:"base_url,omitempty" json:"base_url,omitempty"`
+	Debug   bool              `yaml:"debug,omitempty" json:"debug,omitempty"`
+	Headers map[string]string `yaml:"headers,omitempty" json:"headers,omitempty"`
 }
 
 type PostgresConfig struct {
@@ -36,6 +37,7 @@ const (
 	StepTypeDB    StepType = "db"
 	StepTypeShell StepType = "shell"
 	StepTypePrint StepType = "print"
+	StepTypeLoop  StepType = "loop"
 )
 
 type Step struct {
@@ -44,6 +46,10 @@ type Step struct {
 	Request *HTTPRequest  `yaml:"request,omitempty" json:"request,omitempty"`
 	DB      *DBRequest    `yaml:"db,omitempty" json:"db,omitempty"`
 	Shell   *ShellRequest `yaml:"shell,omitempty" json:"shell,omitempty"`
+
+	// Loop support
+	ForEach string `yaml:"foreach,omitempty" json:"foreach,omitempty"`
+	Steps   []Step `yaml:"steps,omitempty" json:"steps,omitempty"`
 
 	// Flat DB shortcuts
 	Query   string `yaml:"query,omitempty" json:"query,omitempty"`

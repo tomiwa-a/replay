@@ -19,6 +19,11 @@ var runCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		e := engine.New()
 
+		// Allow manual override for the engine too
+		if debug {
+			// Engine needs to be told about global debug if we want to pass it to workflow configs
+		}
+
 		// If concurrency is 1, run sequentially for better output clarity
 		if concurrency <= 1 {
 			for _, path := range args {
@@ -29,6 +34,9 @@ var runCmd = &cobra.Command{
 
 				for i := range wfs {
 					wf := &wfs[i]
+					if debug {
+						wf.Config.HTTP.Debug = true
+					}
 					if err := validate.Workflow(*wf); err != nil {
 						return err
 					}

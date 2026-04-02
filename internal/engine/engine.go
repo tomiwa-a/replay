@@ -37,6 +37,9 @@ func New() *Engine {
 }
 
 func (e *Engine) Run(wf *workflow.Workflow) error {
+	// Set global config into state for use in templates (e.g., baseURL)
+	e.state.Set("config", wf.Config)
+
 	vars := e.state.All()
 	// Ensure the workflow name itself is in the state for interpolation
 	e.state.Set("name", wf.Name)
@@ -50,8 +53,18 @@ func (e *Engine) Run(wf *workflow.Workflow) error {
 	wfStart := time.Now()
 	e.reporter.WorkflowStarted(wfName)
 
-	for _, step := range wf.Steps {
-		vars = e.state.All()
+	if err := e.ExecuteSteps(wf.Steps, wf.Config); err != nil {
+		e.reporter.WorkflowFinished(wfName, false, time.Since(wfStart))
+		return err
+	}
+
+	e.reporter.WorkflowFinished(wfName, true, time.Since(wfStart))
+	return nil
+}
+
+func (e *Engine) ExecuteSteps(steps []workflow.Step, config workflow.Config) error {
+	for _, step := range steps {
+		vars := e.state.All()
 		stepName := template.Render(step.Name, vars)
 		if stepName == "" {
 			stepName = fmt.Sprintf("step %s", step.Type)
@@ -63,13 +76,15 @@ func (e *Engine) Run(wf *workflow.Workflow) error {
 		var err error
 		switch step.Type {
 		case workflow.StepTypeHTTP:
-			_, err = e.httpRunner.Run(wf.Config.HTTP, step)
+			_, err = e.httpRunner.Run(config.HTTP, step)
 		case workflow.StepTypeShell:
 			err = runner.Shell(step, e.state)
 		case workflow.StepTypeDB:
-			err = runner.DB(wf.Config, step, e.state)
+			err = runner.DB(config, step, e.state)
 		case workflow.StepTypePrint:
 			err = runner.Print(step, e.state)
+		case workflow.StepTypeLoop:
+			err = e.ExecuteLoop(step, config)
 		default:
 			err = fmt.Errorf("step type %q not yet implemented", step.Type)
 		}
@@ -80,16 +95,50 @@ func (e *Engine) Run(wf *workflow.Workflow) error {
 				e.reporter.StepFailed(err, duration, true)
 			} else {
 				e.reporter.StepFailed(err, duration, false)
-				e.reporter.WorkflowFinished(wfName, false, time.Since(wfStart))
 				return fmt.Errorf("step %q failed: %w", stepName, err)
 			}
 		} else {
 			e.reporter.StepPassed(duration)
 		}
+	}
+	return nil
+}
 
-		vars = e.state.All()
+func (e *Engine) ExecuteLoop(step workflow.Step, config workflow.Config) error {
+	if step.ForEach == "" {
+		return fmt.Errorf("loop step requires 'foreach' field")
 	}
 
-	e.reporter.WorkflowFinished(wfName, true, time.Since(wfStart))
+	// format: "list, item"
+	parts := strings.Split(step.ForEach, ",")
+	if len(parts) != 2 {
+		return fmt.Errorf("foreach must be in format 'list, item'")
+	}
+	listKey := strings.TrimSpace(parts[0])
+	itemKey := strings.TrimSpace(parts[1])
+
+	val, ok := e.state.Get(listKey)
+	if !ok {
+		return fmt.Errorf("variable %q not found for loop", listKey)
+	}
+
+	// Handle both []any and []map[string]any etc.
+	// Since we use json.Unmarshal into any, it should be []any for arrays
+	items, ok := val.([]any)
+	if !ok {
+		return fmt.Errorf("variable %q is not a list", listKey)
+	}
+
+	for i, item := range items {
+		// Set loop context
+		e.state.Set(itemKey, item)
+		e.state.Set("index", i)
+
+		// Execute nested steps
+		if err := e.ExecuteSteps(step.Steps, config); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }

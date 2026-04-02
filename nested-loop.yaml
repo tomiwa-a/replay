@@ -1,0 +1,35 @@
+name: Nested Loop Test
+config:
+  http:
+    base_url: https://jsonplaceholder.typicode.com
+    headers:
+      X-Global-Header: globally-set
+
+steps:
+  - name: Fetch Users
+    type: http
+    request:
+      method: GET
+      url: /users
+    extract:
+      users: res.data
+
+  - name: User Loop
+    type: loop
+    foreach: users, user
+    steps:
+      - name: Fetch Posts for User {{user.id}}
+        type: http
+        request:
+          method: GET
+          url: /posts?userId={{user.id}}
+        extract:
+          posts: res.data
+
+      - name: Post Loop for {{user.name}}
+        type: loop
+        foreach: posts, post
+        steps:
+          - name: Print Post {{post.id}} Info
+            type: print
+            message: "User {{user.id}} ({{user.username}}) posted: {{post.title}}"

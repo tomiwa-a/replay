@@ -39,9 +39,11 @@ func (r *HTTPRunner) Run(config workflow.HTTPConfig, step workflow.Step) (any, e
 	}
 
 	vars := r.state.All()
+	baseURL := template.Render(config.BaseURL, vars)
 	url := template.Render(step.Request.URL, vars)
+
 	if !strings.HasPrefix(url, "http") {
-		url = fmt.Sprintf("%s%s", config.BaseURL, url)
+		url = fmt.Sprintf("%s%s", baseURL, url)
 	}
 
 	var body io.Reader
@@ -76,6 +78,13 @@ func (r *HTTPRunner) Run(config workflow.HTTPConfig, step workflow.Step) (any, e
 	if err != nil {
 		return nil, err
 	}
+
+	// Apply global headers first
+	for k, v := range config.Headers {
+		req.Header.Set(k, template.Render(v, vars))
+	}
+
+	// Apply step-specific headers (overrides global)
 	for k, v := range step.Request.Headers {
 		req.Header.Set(k, template.Render(v, vars))
 	}
@@ -105,6 +114,9 @@ func (r *HTTPRunner) Run(config workflow.HTTPConfig, step workflow.Step) (any, e
 	}
 
 	for key, path := range step.Extract {
+		// Interpolate path in case it contains variables (dynamic extraction)
+		path = template.Render(path, vars)
+
 		// Handle "res." prefix for consistency with assertions
 		cleanPath := path
 		if strings.HasPrefix(path, "res.") {

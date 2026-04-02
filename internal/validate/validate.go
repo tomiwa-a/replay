@@ -65,8 +65,11 @@ func Workflow(wf workflow.Workflow) error {
 		case workflow.StepTypePrint:
 			err := validatePrintStep(stepPath, step)
 			errs = append(errs, err...)
+		case workflow.StepTypeLoop:
+			err := validateLoopStep(stepPath, step)
+			errs = append(errs, err...)
 		default:
-			errs = append(errs, ValidationError{Path: stepPath + ".type", Message: "must be one of: http, db, shell, print"})
+			errs = append(errs, ValidationError{Path: stepPath + ".type", Message: "must be one of: http, db, shell, print, loop"})
 		}
 
 		err := validateExtract(stepPath, step.Extract)
@@ -235,6 +238,27 @@ func validatePrintStep(stepPath string, step workflow.Step) Errors {
 		errs = append(errs, ValidationError{Path: stepPath + ".shell", Message: "must be empty for print step"})
 	}
 
+	return errs
+}
+
+func validateLoopStep(stepPath string, step workflow.Step) Errors {
+	var errs Errors
+
+	if strings.TrimSpace(step.ForEach) == "" {
+		errs = append(errs, ValidationError{Path: stepPath + ".foreach", Message: "is required for loop step"})
+	} else {
+		parts := strings.Split(step.ForEach, ",")
+		if len(parts) != 2 {
+			errs = append(errs, ValidationError{Path: stepPath + ".foreach", Message: "must be in format 'list, item'"})
+		}
+	}
+
+	if len(step.Steps) == 0 {
+		errs = append(errs, ValidationError{Path: stepPath + ".steps", Message: "must contain at least one nested step"})
+	}
+
+	// Note: We don't recursively call validate here to avoid complex state tracking of loop variables,
+	// but the engine will handle any runtime issues.
 	return errs
 }
 

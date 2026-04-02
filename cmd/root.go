@@ -13,6 +13,12 @@ To enable IDE autocomplete and AI awareness, add this to the top of your YAML fi
 # yaml-language-server: $schema=https://raw.githubusercontent.com/tomiwa-a/replay/main/schema.json`,
 }
 
+var debug bool
+
+func init() {
+	rootCmd.PersistentFlags().BoolVarP(&debug, "debug", "d", false, "Enable debug logging for HTTP and other runners")
+}
+
 func Execute() error {
 	return rootCmd.Execute()
 }
