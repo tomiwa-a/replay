@@ -112,4 +112,5 @@ Status: **In-Progress** 🏗️
   - [ ] Ability to `include` steps from other workflow files
 - [x] **Release Preparation**
   - [x] GitHub Actions for cross-platform builds (Linux, macOS, Windows)
+  - [x] JSON Schema for editor autocomplete and AI awareness
   - [ ] Documentation for Open Source contributors

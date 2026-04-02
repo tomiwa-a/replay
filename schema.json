@@ -1,0 +1,107 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Replay Workflow",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "The name of the workflow"
+    },
+    "version": {
+      "type": "string",
+      "description": "DSL version (e.g., v0.1)"
+    },
+    "config": {
+      "type": "object",
+      "properties": {
+        "http": {
+          "type": "object",
+          "properties": {
+            "base_url": { "type": "string" }
+          }
+        },
+        "postgres": {
+          "type": "object",
+          "properties": {
+            "dsn": { "type": "string" }
+          }
+        },
+        "redis": {
+          "type": "object",
+          "properties": {
+            "addr": { "type": "string" },
+            "password": { "type": "string" },
+            "db": { "type": "integer" }
+          }
+        }
+      }
+    },
+    "steps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "type"],
+        "properties": {
+          "name": { "type": "string" },
+          "type": {
+            "type": "string",
+            "enum": ["http", "db", "shell", "print"]
+          },
+          "request": {
+            "type": "object",
+            "properties": {
+              "method": { "type": "string" },
+              "url": { "type": "string" },
+              "headers": { "type": "object" },
+              "body": { "type": "string" }
+            }
+          },
+          "db": {
+            "type": "object",
+            "properties": {
+              "engine": { "type": "string", "enum": ["postgres", "redis"] },
+              "query": { "type": "string" },
+              "command": { "type": "array", "items": { "type": "string" } }
+            }
+          },
+          "command": {
+             "oneOf": [
+               { "type": "string" },
+               { "type": "array", "items": { "type": "string" } }
+             ]
+          },
+          "dir": { "type": "string" },
+          "timeout": { "type": "string" },
+          "ignore_error": { "type": "boolean" },
+          "extract": {
+            "type": "object",
+            "additionalProperties": { "type": "string" }
+          },
+          "assert": {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "required": ["path", "op", "value"],
+                  "properties": {
+                    "path": { "type": "string" },
+                    "op": { "type": "string" },
+                    "value": { "type": "string" }
+                  }
+                },
+                {
+                  "type": "array",
+                  "minItems": 3,
+                  "maxItems": 3,
+                  "items": { "type": "string" }
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  },
+  "required": ["name", "steps"]
+}
