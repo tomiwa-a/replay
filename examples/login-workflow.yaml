@@ -1,5 +1,5 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/tomiwa-a/replay/main/schema.json
-name: Vendor Login Workflow
+name: vendor_login_workflow
 version: v0.1
 
 config:
@@ -8,7 +8,7 @@ config:
     # debug: true
 
 steps:
-  - name: Login as Vendor
+  - name: login_as_vendor
     type: http
     # ignore_error: true
     request:
@@ -23,38 +23,38 @@ steps:
           "password": "Password@1234"
         }
     extract:
-      accessToken: res.data.data.accessToken
+      access_token: res.data.data.accessToken
       status: res.status
     assert:
       - ["res.status", "==", "200"]
       - ["res.data.data.accessToken", "!=", ""]
 
-  - name: Verify Token Extraction
+  - name: verify_token_extraction
     type: print
-    message: "Status: {{status}}, Logged in successfully. Access Token: {{accessToken}}"
+    message: "Status: {{status}}, Logged in successfully. Access Token: {{access_token}}"
 
-  - name: List Staff Members
+  - name: list_staff_members
     type: http
     request:
       method: GET
       url: /staff?page=1&pageSize=10
       headers:
-        Authorization: "Bearer {{accessToken}}"
+        Authorization: "Bearer {{access_token}}"
         x-VendorTag: "debs"
     extract:
-      staffList: res.data.data
+      staff_list: res.data.data
     assert:
       - ["res.status", "==", "200"]
 
-  - name: Show Staff Names and Emails
+  - name: show_staff_names_and_emails
     type: loop
-    foreach: staffList, staff
+    foreach: staff_list, staff
     steps:
-      - name: Print Staff Member Info
+      - name: print_staff_member_info
         type: print
         message: "- {{staff.firstName}} {{staff.lastName}} ({{staff.email}})"
 
-      - name: Save Staff to File
+      - name: save_staff_to_file
         type: shell
         command: "echo '- {{staff.firstName}} {{staff.lastName}} ({{staff.email}})' >> staff_list.txt"
 
