@@ -1,0 +1,14 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/tomiwa-a/replay/main/schema.json
+name: Operator Test
+steps:
+  - name: Test Operators
+    type: print
+    message: "Checking operators"
+    assert:
+      - ["1", "==", "1"]
+      - ["2", "!=", "1"]
+      - ["10", ">", "5"]
+      - ["5", "<", "10"]
+      - ["5", ">=", "5"]
+      - ["5", "<=", "5"]
+      - ["hello", "contains", "ell"]

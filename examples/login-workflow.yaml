@@ -1,0 +1,32 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/tomiwa-a/replay/main/schema.json
+name: Vendor Login Workflow
+version: v0.1
+
+config:
+  http:
+    base_url: https://localhost:5001
+
+steps:
+  - name: Login as Vendor
+    type: http
+    # ignore_error: true
+    request:
+      method: POST
+      url: /auth/login
+      headers:
+        Content-Type: application/json
+      body: |
+        {
+          "email": "debs@gmail.com",
+          "password": "Password@123"
+        }
+    extract:
+      accessToken: res.data.data.accessToken
+      status: res.status
+    assert:
+      - ["res.status", "==", 200]
+      - ["res.data.data.accessToken", "!=", ""]
+
+  - name: Verify Token Extraction
+    type: print
+    message: "Status: {{status}}, Logged in successfully. Access Token: {{accessToken}}"
