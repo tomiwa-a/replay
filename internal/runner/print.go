@@ -3,6 +3,7 @@ package runner
 import (
 	"fmt"
 
+	"github.com/replay/replay/internal/reporter"
 	"github.com/replay/replay/internal/state"
 	"github.com/replay/replay/internal/template"
 	"github.com/replay/replay/internal/workflow"
@@ -16,6 +17,6 @@ func Print(step workflow.Step, store *state.Store) error {
 
 	msg := template.Render(step.Message, store.All())
 
-	fmt.Printf(" [PRINT] %s\n", msg)
+	fmt.Printf("\n   %s%s%s\n", reporter.ColorBlue, msg, reporter.ColorReset)
 	return nil
 }

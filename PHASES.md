@@ -86,13 +86,15 @@ Status: **Completed** ✅
 
 Status: **In-Progress** 🏗️
 
-- [ ] **Assertion Engine**
-  - [ ] Implement operators: `eq`, `ne`, `gt`, `lt`, `contains`, `not_null`
-  - [ ] Support JSONPath targeting in assertions
-  - [ ] Add `ignore_error: true` support at step level
-- [ ] **Clean Terminal Reporter**
-  - [ ] Implement colored output (Pass/Fail)
-  - [ ] Show step duration and meaningful error snippets on failure
+- [x] **Assertion Engine**
+  - [x] Implement operators: `eq`, `ne`, `gt`, `lt`, `contains`, `not_null`
+  - [x] Support JSONPath targeting in assertions
+  - [x] Add `ignore_error: true` support at step level
+  - [x] Support variable interpolation in assertion values
+  - [x] Compact list-style assertion syntax `["path", "op", "value"]`
+- [x] **Clean Terminal Reporter**
+  - [x] Implement colored output (Pass/Fail)
+  - [x] Show step duration and meaningful error snippets on failure
 
 ---
 

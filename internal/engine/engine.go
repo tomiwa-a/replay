@@ -2,10 +2,12 @@ package engine
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"strings"
 
+	"time"
+
+	"github.com/replay/replay/internal/reporter"
 	"github.com/replay/replay/internal/runner"
 	"github.com/replay/replay/internal/state"
 	"github.com/replay/replay/internal/template"
@@ -15,6 +17,7 @@ import (
 type Engine struct {
 	state      *state.Store
 	httpRunner *runner.HTTPRunner
+	reporter   *reporter.Reporter
 }
 
 func New() *Engine {
@@ -28,6 +31,7 @@ func New() *Engine {
 	return &Engine{
 		state:      s,
 		httpRunner: runner.NewHTTPRunner(s),
+		reporter:   reporter.New(),
 	}
 }
 
@@ -42,7 +46,8 @@ func (e *Engine) Run(wf workflow.Workflow) error {
 		wfName = "nameless workflow"
 	}
 
-	log.Printf("Starting workflow: %s", wfName)
+	wfStart := time.Now()
+	e.reporter.WorkflowStarted(wfName)
 
 	for _, step := range wf.Steps {
 		vars = e.state.All()
@@ -51,51 +56,39 @@ func (e *Engine) Run(wf workflow.Workflow) error {
 			stepName = fmt.Sprintf("step %s", step.Type)
 		}
 
-		log.Printf("Running step: %s [%s]", stepName, step.Type)
+		e.reporter.StepStarted(stepName, string(step.Type))
+		stepStart := time.Now()
 
+		var err error
 		switch step.Type {
 		case workflow.StepTypeHTTP:
-			_, err := e.httpRunner.Run(wf.Config.HTTP.BaseURL, step)
-			if err != nil {
-				if step.IgnoreError {
-					log.Printf("Step %q failed (ignored): %v", stepName, err)
-					continue
-				}
-				return fmt.Errorf("step %q failed: %w", stepName, err)
-			}
+			_, err = e.httpRunner.Run(wf.Config.HTTP.BaseURL, step)
 		case workflow.StepTypeShell:
-			err := runner.Shell(step, e.state)
-			if err != nil {
-				if step.IgnoreError {
-					log.Printf("Step %q failed (ignored): %v", stepName, err)
-					continue
-				}
-				return fmt.Errorf("step %q failed: %w", stepName, err)
-			}
+			err = runner.Shell(step, e.state)
 		case workflow.StepTypeDB:
-			err := runner.DB(wf.Config, step, e.state)
-			if err != nil {
-				if step.IgnoreError {
-					log.Printf("Step %q failed (ignored): %v", stepName, err)
-					continue
-				}
-				return fmt.Errorf("step %q failed: %w", stepName, err)
-			}
+			err = runner.DB(wf.Config, step, e.state)
 		case workflow.StepTypePrint:
-			err := runner.Print(step, e.state)
-			if err != nil {
-				if step.IgnoreError {
-					log.Printf("Step %q failed (ignored): %v", stepName, err)
-					continue
-				}
+			err = runner.Print(step, e.state)
+		default:
+			err = fmt.Errorf("step type %q not yet implemented", step.Type)
+		}
+
+		duration := time.Since(stepStart)
+		if err != nil {
+			if step.IgnoreError {
+				e.reporter.StepFailed(err, duration, true)
+			} else {
+				e.reporter.StepFailed(err, duration, false)
+				e.reporter.WorkflowFinished(wfName, false, time.Since(wfStart))
 				return fmt.Errorf("step %q failed: %w", stepName, err)
 			}
-		default:
-			log.Printf("Warning: step type %q not yet implemented, skipping", step.Type)
+		} else {
+			e.reporter.StepPassed(duration)
 		}
+
 		vars = e.state.All()
 	}
 
-	log.Printf("Workflow %q completed successfully", wfName)
+	e.reporter.WorkflowFinished(wfName, true, time.Since(wfStart))
 	return nil
 }
