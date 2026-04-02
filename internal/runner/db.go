@@ -149,6 +149,8 @@ func runRedis(ctx context.Context, defaultAddr string, command []string, extract
 
 	if len(extract) > 0 {
 		for varName, path := range extract {
+			if path == "$" {
+				store.Set(varName, val)
 				continue
 			}
 

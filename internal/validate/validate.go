@@ -120,11 +120,8 @@ func validateDBStep(stepPath string, step workflow.Step) Errors {
 	}
 
 	if db.Engine == "" {
-		// Defaulting logic could also be here, but let's require it for validation
-		// unless we assume postgres. For now, let's keep it strict or allow 'engine' via step.
-		if step.Type == workflow.StepTypeDB {
-			errs = append(errs, ValidationError{Path: stepPath + ".engine", Message: "is required for db step (or use 'db' block)"})
-		}
+		// Use postgres as default for validation if no engine is provided
+		db.Engine = workflow.DBEnginePostgres
 	}
 
 	switch db.Engine {
@@ -142,12 +139,12 @@ func validateDBStep(stepPath string, step workflow.Step) Errors {
 	}
 
 	if query != "" && hasCommand {
-		errs = append(errs, ValidationError{Path: stepPath + ".db", Message: "query and command are mutually exclusive"})
+		errs = append(errs, ValidationError{Path: stepPath, Message: "query and command are mutually exclusive"})
 	}
 
-	for i, arg := range step.DB.Command {
+	for i, arg := range db.Command {
 		if strings.TrimSpace(arg) == "" {
-			errs = append(errs, ValidationError{Path: fmt.Sprintf("%s.db.command[%d]", stepPath, i), Message: "must not be empty"})
+			errs = append(errs, ValidationError{Path: fmt.Sprintf("%s.command[%d]", stepPath, i), Message: "must not be empty"})
 		}
 	}
 
