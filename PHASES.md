@@ -110,6 +110,6 @@ Status: **In-Progress** 🏗️
   - [ ] Implement `parallel: true` for shell steps with multiple commands
 - [ ] **Cross-file Imports**
   - [ ] Ability to `include` steps from other workflow files
-- [ ] **Release Preparation**
-  - [ ] GitHub Actions for cross-platform builds (Linux, macOS, Windows)
+- [x] **Release Preparation**
+  - [x] GitHub Actions for cross-platform builds (Linux, macOS, Windows)
   - [ ] Documentation for Open Source contributors
