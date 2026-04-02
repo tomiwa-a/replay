@@ -57,21 +57,37 @@ func (e *Engine) Run(wf workflow.Workflow) error {
 		case workflow.StepTypeHTTP:
 			_, err := e.httpRunner.Run(wf.Config.HTTP.BaseURL, step)
 			if err != nil {
+				if step.IgnoreError {
+					log.Printf("Step %q failed (ignored): %v", stepName, err)
+					continue
+				}
 				return fmt.Errorf("step %q failed: %w", stepName, err)
 			}
 		case workflow.StepTypeShell:
 			err := runner.Shell(step, e.state)
 			if err != nil {
+				if step.IgnoreError {
+					log.Printf("Step %q failed (ignored): %v", stepName, err)
+					continue
+				}
 				return fmt.Errorf("step %q failed: %w", stepName, err)
 			}
 		case workflow.StepTypeDB:
 			err := runner.DB(wf.Config, step, e.state)
 			if err != nil {
+				if step.IgnoreError {
+					log.Printf("Step %q failed (ignored): %v", stepName, err)
+					continue
+				}
 				return fmt.Errorf("step %q failed: %w", stepName, err)
 			}
 		case workflow.StepTypePrint:
 			err := runner.Print(step, e.state)
 			if err != nil {
+				if step.IgnoreError {
+					log.Printf("Step %q failed (ignored): %v", stepName, err)
+					continue
+				}
 				return fmt.Errorf("step %q failed: %w", stepName, err)
 			}
 		default:

@@ -1,0 +1,40 @@
+name: Phase 5 Assertions Test
+steps:
+  - name: Set up Redis
+    type: db
+    engine: redis
+    command: ["SET", "user:1", '{"id": 1, "name": "Alice", "score": 100}']
+
+  - name: Validate Redis Data
+    type: db
+    engine: redis
+    command: ["GET", "user:1"]
+    extract:
+      user_json: "$"
+    assert:
+      - path: "$.name"
+        op: "eq"
+        value: "Alice"
+      - path: "$.score"
+        op: "gt"
+        value: 50
+
+  - name: Shell Assertion
+    type: shell
+    command: 'echo "{\"status\": \"ok\", \"count\": 5}"'
+    assert:
+      - path: "$.status"
+        op: "eq"
+        value: "ok"
+      - path: "$.count"
+        op: "lt"
+        value: 10
+
+  - name: Ignore Error Test
+    type: shell
+    command: "exit 1"
+    ignore_error: true
+
+  - name: Print Results
+    type: print
+    message: "Assertions passed! User from Redis: {{user_json}}"

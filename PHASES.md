@@ -84,11 +84,12 @@ Status: **Completed** ✅
 
 ## Phase 5: Assertions & Reporting
 
-Status: **Planned** 📅
+Status: **In-Progress** 🏗️
 
 - [ ] **Assertion Engine**
   - [ ] Implement operators: `eq`, `ne`, `gt`, `lt`, `contains`, `not_null`
   - [ ] Support JSONPath targeting in assertions
+  - [ ] Add `ignore_error: true` support at step level
 - [ ] **Clean Terminal Reporter**
   - [ ] Implement colored output (Pass/Fail)
   - [ ] Show step duration and meaningful error snippets on failure

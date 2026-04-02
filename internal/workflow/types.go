@@ -45,13 +45,19 @@ type Step struct {
 	Shell   *ShellRequest `yaml:"shell,omitempty" json:"shell,omitempty"`
 
 	// Flat DB shortcuts
-	Query   string   `yaml:"query,omitempty" json:"query,omitempty"`
-	Command []string `yaml:"command,omitempty" json:"command,omitempty"`
-	Engine  string   `yaml:"engine,omitempty" json:"engine,omitempty"`
+	Query   string `yaml:"query,omitempty" json:"query,omitempty"`
+	Command any    `yaml:"command,omitempty" json:"command,omitempty"`
+	Engine  string `yaml:"engine,omitempty" json:"engine,omitempty"`
+
+	// Flat Shell shortcuts
+	Dir     string `yaml:"dir,omitempty" json:"dir,omitempty"`
+	Timeout string `yaml:"timeout,omitempty" json:"timeout,omitempty"`
 
 	Message string            `yaml:"message,omitempty" json:"message,omitempty"`
 	Extract map[string]string `yaml:"extract,omitempty" json:"extract,omitempty"`
 	Assert  []AssertRule      `yaml:"assert,omitempty" json:"assert,omitempty"`
+
+	IgnoreError bool `yaml:"ignore_error,omitempty" json:"ignore_error,omitempty"`
 }
 
 type HTTPRequest struct {

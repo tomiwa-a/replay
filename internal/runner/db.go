@@ -26,7 +26,16 @@ func DB(wfConfig workflow.Config, step workflow.Step, store *state.Store) error 
 	} else {
 		engine = workflow.DBEngine(step.Engine)
 		query = step.Query
-		command = step.Command
+		switch c := step.Command.(type) {
+		case string:
+			command = []string{c}
+		case []string:
+			command = c
+		case []any:
+			for _, v := range c {
+				command = append(command, fmt.Sprintf("%v", v))
+			}
+		}
 	}
 
 	if engine == "" {
@@ -37,15 +46,15 @@ func DB(wfConfig workflow.Config, step workflow.Step, store *state.Store) error 
 
 	switch engine {
 	case workflow.DBEnginePostgres:
-		return runPostgres(ctx, wfConfig.Postgres.DSN, query, step.Extract, store)
+		return runPostgres(ctx, wfConfig.Postgres.DSN, query, step, store)
 	case workflow.DBEngineRedis:
-		return runRedis(ctx, wfConfig.Redis.Addr, command, step.Extract, store)
+		return runRedis(ctx, wfConfig.Redis.Addr, command, step, store)
 	default:
 		return fmt.Errorf("unsupported db engine: %s", engine)
 	}
 }
 
-func runPostgres(ctx context.Context, defaultDSN string, queryRaw string, extract map[string]string, store *state.Store) error {
+func runPostgres(ctx context.Context, defaultDSN string, queryRaw string, step workflow.Step, store *state.Store) error {
 	dsn := template.Render(defaultDSN, store.All())
 	if dsn == "" {
 		return fmt.Errorf("postgres DSN is not configured")
@@ -67,13 +76,13 @@ func runPostgres(ctx context.Context, defaultDSN string, queryRaw string, extrac
 	// Capture all rows as a slice of maps
 	var results []map[string]any
 	fields := rows.FieldDescriptions()
-	
+
 	for rows.Next() {
 		values, err := rows.Values()
 		if err != nil {
 			return fmt.Errorf("failed to scan row: %w", err)
 		}
-		
+
 		row := make(map[string]any)
 		for i, field := range fields {
 			row[field.Name] = values[i]
@@ -90,8 +99,8 @@ func runPostgres(ctx context.Context, defaultDSN string, queryRaw string, extrac
 		store.Set("db_results", results)
 	}
 
-	if len(extract) > 0 {
-		for varName, path := range extract {
+	if len(step.Extract) > 0 {
+		for varName, path := range step.Extract {
 			expr, err := jp.ParseString(path)
 			if err != nil {
 				return fmt.Errorf("invalid jsonpath %s: %w", path, err)
@@ -109,10 +118,18 @@ func runPostgres(ctx context.Context, defaultDSN string, queryRaw string, extrac
 		}
 	}
 
+	// Assertions
+	ae := NewAssertionEngine(store.All())
+	for _, rule := range step.Assert {
+		if err := ae.Check(rule, results); err != nil {
+			return fmt.Errorf("assertion failed: %w", err)
+		}
+	}
+
 	return nil
 }
 
-func runRedis(ctx context.Context, defaultAddr string, command []string, extract map[string]string, store *state.Store) error {
+func runRedis(ctx context.Context, defaultAddr string, command []string, step workflow.Step, store *state.Store) error {
 	addr := template.Render(defaultAddr, store.All())
 	if addr == "" {
 		addr = "localhost:6379" // Default Redis
@@ -144,11 +161,11 @@ func runRedis(ctx context.Context, defaultAddr string, command []string, extract
 	if err == redis.Nil {
 		val = nil
 	}
-	
+
 	store.Set("db_results", val)
 
-	if len(extract) > 0 {
-		for varName, path := range extract {
+	if len(step.Extract) > 0 {
+		for varName, path := range step.Extract {
 			if path == "$" {
 				store.Set(varName, val)
 				continue
@@ -169,6 +186,14 @@ func runRedis(ctx context.Context, defaultAddr string, command []string, extract
 			} else {
 				store.Set(varName, res)
 			}
+		}
+	}
+
+	// Assertions
+	ae := NewAssertionEngine(store.All())
+	for _, rule := range step.Assert {
+		if err := ae.Check(rule, val); err != nil {
+			return fmt.Errorf("assertion failed: %w", err)
 		}
 	}
 

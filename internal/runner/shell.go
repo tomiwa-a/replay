@@ -18,15 +18,32 @@ import (
 
 // Shell executes one or more shell commands.
 func Shell(step workflow.Step, store *state.Store) error {
-	if step.Shell == nil {
-		return fmt.Errorf("shell configuration is missing")
-	}
-
 	var commands []string
-	if step.Shell.Command != "" {
-		commands = append(commands, step.Shell.Command)
-	} else if len(step.Shell.Commands) > 0 {
-		commands = step.Shell.Commands
+	var timeoutStr string
+	var dirRaw string
+
+	if step.Shell != nil {
+		if step.Shell.Command != "" {
+			commands = append(commands, step.Shell.Command)
+		} else if len(step.Shell.Commands) > 0 {
+			commands = step.Shell.Commands
+		}
+		timeoutStr = step.Shell.Timeout
+		dirRaw = step.Shell.Dir
+	} else {
+		// Shortcuts
+		switch c := step.Command.(type) {
+		case string:
+			commands = []string{c}
+		case []string:
+			commands = c
+		case []any:
+			for _, v := range c {
+				commands = append(commands, fmt.Sprintf("%v", v))
+			}
+		}
+		timeoutStr = step.Timeout
+		dirRaw = step.Dir
 	}
 
 	if len(commands) == 0 {
@@ -35,18 +52,18 @@ func Shell(step workflow.Step, store *state.Store) error {
 
 	// Timeout
 	var timeout time.Duration
-	if step.Shell.Timeout != "" {
-		d, err := time.ParseDuration(step.Shell.Timeout)
+	if timeoutStr != "" {
+		d, err := time.ParseDuration(timeoutStr)
 		if err != nil {
-			return fmt.Errorf("invalid timeout %q: %w", step.Shell.Timeout, err)
+			return fmt.Errorf("invalid timeout %q: %w", timeoutStr, err)
 		}
 		timeout = d
 	}
 
 	// Working directory
 	var dir string
-	if step.Shell.Dir != "" {
-		dir = template.Render(step.Shell.Dir, store.All())
+	if dirRaw != "" {
+		dir = template.Render(dirRaw, store.All())
 	}
 
 	var finalOutput string
@@ -121,6 +138,14 @@ func Shell(step workflow.Step, store *state.Store) error {
 			} else {
 				store.Set(varName, results)
 			}
+		}
+	}
+
+	// Assertions
+	ae := NewAssertionEngine(store.All())
+	for _, rule := range step.Assert {
+		if err := ae.Check(rule, finalOutput); err != nil {
+			return fmt.Errorf("assertion failed: %w", err)
 		}
 	}
 

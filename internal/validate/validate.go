@@ -112,10 +112,22 @@ func validateDBStep(stepPath string, step workflow.Step) Errors {
 	db := step.DB
 	if db == nil {
 		// Use shortcuts if db block is missing
+		var command []string
+		switch c := step.Command.(type) {
+		case string:
+			command = []string{c}
+		case []string:
+			command = c
+		case []any:
+			for _, v := range c {
+				command = append(command, fmt.Sprintf("%v", v))
+			}
+		}
+
 		db = &workflow.DBRequest{
 			Engine:  workflow.DBEngine(step.Engine),
 			Query:   step.Query,
-			Command: step.Command,
+			Command: command,
 		}
 	}
 
@@ -158,25 +170,41 @@ func validateDBStep(stepPath string, step workflow.Step) Errors {
 func validateShellStep(stepPath string, step workflow.Step) Errors {
 	var errs Errors
 
-	if step.Shell == nil {
-		errs = append(errs, ValidationError{Path: stepPath + ".shell", Message: "is required for shell step"})
-		return errs
+	shell := step.Shell
+	if shell == nil {
+		var commands []string
+		switch c := step.Command.(type) {
+		case string:
+			commands = []string{c}
+		case []string:
+			commands = c
+		case []any:
+			for _, v := range c {
+				commands = append(commands, fmt.Sprintf("%v", v))
+			}
+		}
+
+		shell = &workflow.ShellRequest{
+			Commands: commands,
+			Dir:      step.Dir,
+			Timeout:  step.Timeout,
+		}
 	}
 
-	hasCommand := strings.TrimSpace(step.Shell.Command) != ""
-	hasCommands := len(step.Shell.Commands) > 0
+	hasCommand := strings.TrimSpace(shell.Command) != ""
+	hasCommands := len(shell.Commands) > 0
 
 	if !hasCommand && !hasCommands {
-		errs = append(errs, ValidationError{Path: stepPath + ".shell", Message: "either command or commands is required"})
+		errs = append(errs, ValidationError{Path: stepPath, Message: "either command or commands is required"})
 	}
 
 	if hasCommand && hasCommands {
-		errs = append(errs, ValidationError{Path: stepPath + ".shell", Message: "command and commands are mutually exclusive"})
+		errs = append(errs, ValidationError{Path: stepPath, Message: "command and commands are mutually exclusive"})
 	}
 
-	if step.Shell.Timeout != "" {
-		if _, err := time.ParseDuration(step.Shell.Timeout); err != nil {
-			errs = append(errs, ValidationError{Path: stepPath + ".shell.timeout", Message: fmt.Sprintf("invalid duration: %v", err)})
+	if shell.Timeout != "" {
+		if _, err := time.ParseDuration(shell.Timeout); err != nil {
+			errs = append(errs, ValidationError{Path: stepPath + ".timeout", Message: fmt.Sprintf("invalid duration: %v", err)})
 		}
 	}
 
