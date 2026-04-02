@@ -38,11 +38,17 @@ const (
 )
 
 type Step struct {
-	Name    string            `yaml:"name" json:"name"`
-	Type    StepType          `yaml:"type" json:"type"`
-	Request *HTTPRequest      `yaml:"request,omitempty" json:"request,omitempty"`
-	DB      *DBRequest        `yaml:"db,omitempty" json:"db,omitempty"`
-	Shell   *ShellRequest     `yaml:"shell,omitempty" json:"shell,omitempty"`
+	Name    string        `yaml:"name" json:"name"`
+	Type    StepType      `yaml:"type" json:"type"`
+	Request *HTTPRequest  `yaml:"request,omitempty" json:"request,omitempty"`
+	DB      *DBRequest    `yaml:"db,omitempty" json:"db,omitempty"`
+	Shell   *ShellRequest `yaml:"shell,omitempty" json:"shell,omitempty"`
+
+	// Flat DB shortcuts
+	Query   string   `yaml:"query,omitempty" json:"query,omitempty"`
+	Command []string `yaml:"command,omitempty" json:"command,omitempty"`
+	Engine  string   `yaml:"engine,omitempty" json:"engine,omitempty"`
+
 	Message string            `yaml:"message,omitempty" json:"message,omitempty"`
 	Extract map[string]string `yaml:"extract,omitempty" json:"extract,omitempty"`
 	Assert  []AssertRule      `yaml:"assert,omitempty" json:"assert,omitempty"`

@@ -109,22 +109,36 @@ func validateHTTPStep(stepPath string, step workflow.Step) Errors {
 func validateDBStep(stepPath string, step workflow.Step) Errors {
 	var errs Errors
 
-	if step.DB == nil {
-		errs = append(errs, ValidationError{Path: stepPath + ".db", Message: "is required for db step"})
-		return errs
+	db := step.DB
+	if db == nil {
+		// Use shortcuts if db block is missing
+		db = &workflow.DBRequest{
+			Engine:  workflow.DBEngine(step.Engine),
+			Query:   step.Query,
+			Command: step.Command,
+		}
 	}
 
-	switch step.DB.Engine {
+	if db.Engine == "" {
+		// Defaulting logic could also be here, but let's require it for validation
+		// unless we assume postgres. For now, let's keep it strict or allow 'engine' via step.
+		if step.Type == workflow.StepTypeDB {
+			errs = append(errs, ValidationError{Path: stepPath + ".engine", Message: "is required for db step (or use 'db' block)"})
+		}
+	}
+
+	switch db.Engine {
 	case workflow.DBEnginePostgres, workflow.DBEngineRedis:
+	case "": // Handled above
 	default:
-		errs = append(errs, ValidationError{Path: stepPath + ".db.engine", Message: "must be one of: postgres, redis"})
+		errs = append(errs, ValidationError{Path: stepPath + ".engine", Message: "must be one of: postgres, redis"})
 	}
 
-	query := strings.TrimSpace(step.DB.Query)
-	hasCommand := len(step.DB.Command) > 0
+	query := strings.TrimSpace(db.Query)
+	hasCommand := len(db.Command) > 0
 
 	if query == "" && !hasCommand {
-		errs = append(errs, ValidationError{Path: stepPath + ".db", Message: "must include query or command"})
+		errs = append(errs, ValidationError{Path: stepPath, Message: "must include query or command"})
 	}
 
 	if query != "" && hasCommand {

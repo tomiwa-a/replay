@@ -74,6 +74,9 @@ Status: **Completed** ✅
 - [x] **Redis Native Adapter**
   - [x] Integrate `go-redis`
   - [x] Implement basic commands (`SET`, `GET`, `DEL`, `EXISTS`)
+- [x] **DB DSL Enhancements**
+  - [x] Implement flat DB shortcuts (`query`, `command`, `engine` at step level)
+  - [x] Default `engine` to `postgres` if not specified
 - [ ] **State persistence and isolation**
   - [ ] Ensure DB results can be referenced accurately in subsequent steps
 

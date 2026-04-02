@@ -1,0 +1,28 @@
+name: "Redis Integration Test"
+
+config:
+  redis:
+    addr: "localhost:6379"
+
+steps:
+  - name: "Set a key"
+    type: "db"
+    engine: "redis"
+    command: ["SET", "replay:status", "active"]
+
+  - name: "Get the key back"
+    type: "db"
+    engine: "redis"
+    command: ["GET", "replay:status"]
+    extract:
+      current_status: "$"
+
+  - name: "Print status"
+    type: "print"
+    message: "Redis status is: {{ current_status }}"
+
+  - name: "Delete key"
+    type: "db"
+    db:
+      engine: "redis"
+      command: ["DEL", "replay:status"]

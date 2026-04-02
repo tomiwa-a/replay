@@ -1,0 +1,30 @@
+name: "Postgres Integration Test"
+
+config:
+  postgres:
+    dsn: "postgres://postgres:password@localhost:5432/postgres?sslmode=disable"
+
+steps:
+  - name: "Setup Table"
+    type: "db"
+    query: "CREATE TABLE IF NOT EXISTS test_users (id SERIAL PRIMARY KEY, name TEXT, email TEXT);"
+
+  - name: "Insert User"
+    type: "db"
+    query: "INSERT INTO test_users (name, email) VALUES ('John Doe', 'john@example.com') RETURNING id;"
+    extract:
+      new_user_id: "$[0].id"
+
+  - name: "Verify via Print"
+    type: "print"
+    message: "User was created with ID: {{ new_user_id }}"
+
+  - name: "Query User"
+    type: "db"
+    query: "SELECT * FROM test_users WHERE id = {{ new_user_id }};"
+    extract:
+      user_name: "$[0].name"
+
+  - name: "Check result"
+    type: "print"
+    message: "Found user: {{ user_name }} from the database."

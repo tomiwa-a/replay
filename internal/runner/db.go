@@ -15,23 +15,37 @@ import (
 
 // DB executes a database query or command (Postgres or Redis).
 func DB(wfConfig workflow.Config, step workflow.Step, store *state.Store) error {
-	if step.DB == nil {
-		return fmt.Errorf("db configuration is missing")
+	var engine workflow.DBEngine
+	var query string
+	var command []string
+
+	if step.DB != nil {
+		engine = step.DB.Engine
+		query = step.DB.Query
+		command = step.DB.Command
+	} else {
+		engine = workflow.DBEngine(step.Engine)
+		query = step.Query
+		command = step.Command
 	}
 
-	ctx := context.Background() // We might add a generic step timeout later
+	if engine == "" {
+		engine = workflow.DBEnginePostgres // Default to postgres as requested
+	}
 
-	switch step.DB.Engine {
+	ctx := context.Background()
+
+	switch engine {
 	case workflow.DBEnginePostgres:
-		return runPostgres(ctx, wfConfig.Postgres.DSN, step, store)
+		return runPostgres(ctx, wfConfig.Postgres.DSN, query, step.Extract, store)
 	case workflow.DBEngineRedis:
-		return runRedis(ctx, wfConfig.Redis.Addr, step, store)
+		return runRedis(ctx, wfConfig.Redis.Addr, command, step.Extract, store)
 	default:
-		return fmt.Errorf("unsupported db engine: %s", step.DB.Engine)
+		return fmt.Errorf("unsupported db engine: %s", engine)
 	}
 }
 
-func runPostgres(ctx context.Context, defaultDSN string, step workflow.Step, store *state.Store) error {
+func runPostgres(ctx context.Context, defaultDSN string, queryRaw string, extract map[string]string, store *state.Store) error {
 	dsn := template.Render(defaultDSN, store.All())
 	if dsn == "" {
 		return fmt.Errorf("postgres DSN is not configured")
@@ -43,7 +57,7 @@ func runPostgres(ctx context.Context, defaultDSN string, step workflow.Step, sto
 	}
 	defer conn.Close(ctx)
 
-	query := template.Render(step.DB.Query, store.All())
+	query := template.Render(queryRaw, store.All())
 	rows, err := conn.Query(ctx, query)
 	if err != nil {
 		return fmt.Errorf("query failed: %w", err)
@@ -53,13 +67,13 @@ func runPostgres(ctx context.Context, defaultDSN string, step workflow.Step, sto
 	// Capture all rows as a slice of maps
 	var results []map[string]any
 	fields := rows.FieldDescriptions()
-
+	
 	for rows.Next() {
 		values, err := rows.Values()
 		if err != nil {
 			return fmt.Errorf("failed to scan row: %w", err)
 		}
-
+		
 		row := make(map[string]any)
 		for i, field := range fields {
 			row[field.Name] = values[i]
@@ -76,8 +90,8 @@ func runPostgres(ctx context.Context, defaultDSN string, step workflow.Step, sto
 		store.Set("db_results", results)
 	}
 
-	if len(step.Extract) > 0 {
-		for varName, path := range step.Extract {
+	if len(extract) > 0 {
+		for varName, path := range extract {
 			expr, err := jp.ParseString(path)
 			if err != nil {
 				return fmt.Errorf("invalid jsonpath %s: %w", path, err)
@@ -98,7 +112,7 @@ func runPostgres(ctx context.Context, defaultDSN string, step workflow.Step, sto
 	return nil
 }
 
-func runRedis(ctx context.Context, defaultAddr string, step workflow.Step, store *state.Store) error {
+func runRedis(ctx context.Context, defaultAddr string, command []string, extract map[string]string, store *state.Store) error {
 	addr := template.Render(defaultAddr, store.All())
 	if addr == "" {
 		addr = "localhost:6379" // Default Redis
@@ -109,13 +123,13 @@ func runRedis(ctx context.Context, defaultAddr string, step workflow.Step, store
 	})
 	defer rdb.Close()
 
-	if len(step.DB.Command) == 0 {
+	if len(command) == 0 {
 		return fmt.Errorf("redis requires a command (e.g. ['GET', 'key'])")
 	}
 
 	// Render command arguments
-	args := make([]interface{}, len(step.DB.Command))
-	for i, arg := range step.DB.Command {
+	args := make([]interface{}, len(command))
+	for i, arg := range command {
 		args[i] = template.Render(arg, store.All())
 	}
 
@@ -130,13 +144,11 @@ func runRedis(ctx context.Context, defaultAddr string, step workflow.Step, store
 	if err == redis.Nil {
 		val = nil
 	}
-
+	
 	store.Set("db_results", val)
 
-	if len(step.Extract) > 0 {
-		for varName, path := range step.Extract {
-			if path == "$" {
-				store.Set(varName, val)
+	if len(extract) > 0 {
+		for varName, path := range extract {
 				continue
 			}
 
