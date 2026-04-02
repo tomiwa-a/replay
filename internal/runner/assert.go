@@ -39,6 +39,11 @@ func (e *AssertionEngine) Check(rule workflow.AssertRule, actual any) error {
 		if !strings.HasPrefix(expr, "$") {
 			expr = "$." + expr
 		}
+		// If path is "res.status" but data is the result map, we should map res. to $.
+		if strings.HasPrefix(expr, "$.res.") {
+			expr = strings.Replace(expr, "$.res.", "$.", 1)
+		}
+
 		if p, err := jp.ParseString(expr); err == nil {
 			values := p.Get(data)
 			if len(values) > 0 {

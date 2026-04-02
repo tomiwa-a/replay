@@ -73,7 +73,15 @@ func (r *HTTPRunner) Run(base string, step workflow.Step) (any, error) {
 	}
 
 	for key, path := range step.Extract {
-		if p, err := jp.ParseString(path); err == nil {
+		// Handle "res." prefix for consistency with assertions
+		cleanPath := path
+		if strings.HasPrefix(path, "res.") {
+			cleanPath = strings.Replace(path, "res.", "$.", 1)
+		} else if !strings.HasPrefix(path, "$") {
+			cleanPath = "$." + path
+		}
+
+		if p, err := jp.ParseString(cleanPath); err == nil {
 			values := p.Get(result)
 			if len(values) > 0 {
 				r.state.Set(key, values[0])
