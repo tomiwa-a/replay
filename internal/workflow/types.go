@@ -56,8 +56,10 @@ type HTTPRequest struct {
 }
 
 type ShellRequest struct {
-	Command string `yaml:"command" json:"command"`
-	Dir     string `yaml:"dir,omitempty" json:"dir,omitempty"`
+	Command  string   `yaml:"command,omitempty" json:"command,omitempty"`
+	Commands []string `yaml:"commands,omitempty" json:"commands,omitempty"`
+	Dir      string   `yaml:"dir,omitempty" json:"dir,omitempty"`
+	Timeout  string   `yaml:"timeout,omitempty" json:"timeout,omitempty"`
 }
 
 type DBEngine string

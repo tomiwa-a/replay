@@ -64,6 +64,11 @@ func (e *Engine) Run(wf workflow.Workflow) error {
 			if err != nil {
 				return fmt.Errorf("step %q failed: %w", stepName, err)
 			}
+		case workflow.StepTypeDB:
+			err := runner.DB(wf.Config, step, e.state)
+			if err != nil {
+				return fmt.Errorf("step %q failed: %w", stepName, err)
+			}
 		case workflow.StepTypePrint:
 			err := runner.Print(step, e.state)
 			if err != nil {

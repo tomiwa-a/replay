@@ -3,6 +3,7 @@ package validate
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/replay/replay/internal/workflow"
 )
@@ -151,8 +152,21 @@ func validateShellStep(stepPath string, step workflow.Step) Errors {
 		return errs
 	}
 
-	if strings.TrimSpace(step.Shell.Command) == "" {
-		errs = append(errs, ValidationError{Path: stepPath + ".shell.command", Message: "is required"})
+	hasCommand := strings.TrimSpace(step.Shell.Command) != ""
+	hasCommands := len(step.Shell.Commands) > 0
+
+	if !hasCommand && !hasCommands {
+		errs = append(errs, ValidationError{Path: stepPath + ".shell", Message: "either command or commands is required"})
+	}
+
+	if hasCommand && hasCommands {
+		errs = append(errs, ValidationError{Path: stepPath + ".shell", Message: "command and commands are mutually exclusive"})
+	}
+
+	if step.Shell.Timeout != "" {
+		if _, err := time.ParseDuration(step.Shell.Timeout); err != nil {
+			errs = append(errs, ValidationError{Path: stepPath + ".shell.timeout", Message: fmt.Sprintf("invalid duration: %v", err)})
+		}
 	}
 
 	if step.Request != nil {

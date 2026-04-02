@@ -1,0 +1,23 @@
+name: "Phase 4 - Advanced Shell and DB"
+
+steps:
+  - name: "Multi-command demo"
+    type: "shell"
+    shell:
+      commands:
+        - "echo 'line 1'"
+        - "echo '{\"foo\": \"bar\"}'"
+    extract:
+      foo_val: "$.foo"
+
+  - name: "Print extracted foo"
+    type: "print"
+    message: "Extracted from last command: {{ foo_val }}"
+
+  - name: "Timeout demo"
+    type: "shell"
+    shell:
+      command: "sleep 2"
+      timeout: "1s"
+    # This step is expected to fail! 
+    # Use 'ignoreError: true' when implemented, for now we run it and expect a crash to prove timeout.
