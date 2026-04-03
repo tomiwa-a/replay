@@ -1,4 +1,4 @@
-# yaml-language-server: $schema=https://raw.githubusercontent.com/tomiwa-a/replay/main/schema.json
+
 name: vendor_login_workflow
 version: v0.1
 
@@ -10,16 +10,16 @@ config:
 steps:
   - name: login_as_vendor
     type: http
-    # ignore_error: true
+    ignore_error: true
     request:
       method: POST
       url: /auth/login
       headers:
-        x-VendorTag: "debs"
+        x-VendorTag: "jane"
         Content-Type: application/json
       body: |
         {
-          "email": "debs@gmail.com",
+          "email": "jane@gmail.com",
           "password": "Password@1234"
         }
     extract:
@@ -35,6 +35,7 @@ steps:
 
   - name: list_staff_members
     type: http
+
     request:
       method: GET
       url: /staff?page=1&pageSize=10

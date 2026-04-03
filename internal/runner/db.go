@@ -3,6 +3,7 @@ package runner
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/redis/go-redis/v9"
@@ -178,7 +179,25 @@ func runRedis(ctx context.Context, defaultAddr string, command []string, step wo
 				return fmt.Errorf("invalid jsonpath %s: %w", path, err)
 			}
 
-			res := expr.Get(val)
+			// Wrap val if it's not a map/slice for JP to work with "res." prefix conventions
+			data := map[string]any{"res": val, "data": val}
+
+			// Handle "res." or "data." prefix for consistency
+			cleanPath := path
+			if strings.HasPrefix(path, "res.") {
+				cleanPath = strings.Replace(path, "res.", "$.res.", 1)
+			} else if strings.HasPrefix(path, "data.") {
+				cleanPath = strings.Replace(path, "data.", "$.data.", 1)
+			} else if !strings.HasPrefix(path, "$") {
+				cleanPath = "$." + path
+			}
+
+			expr, err = jp.ParseString(cleanPath)
+			if err != nil {
+				return fmt.Errorf("invalid jsonpath %s: %w", path, err)
+			}
+
+			res := expr.Get(data)
 			if len(res) == 0 {
 				store.Set(varName, nil)
 			} else if len(res) == 1 {

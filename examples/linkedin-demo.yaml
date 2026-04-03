@@ -1,0 +1,66 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/tomiwa-a/replay/main/schema.json
+name: linkedin_demo_workflow
+config:
+  http:
+    base_url: https://jsonplaceholder.typicode.com
+  vars:
+    search_keyword: "post"
+    redis_key: "replay:demo:posts"
+
+steps:
+  - name: fetch_public_data
+    type: http
+    request:
+      method: GET
+      url: /posts
+    extract:
+      first_post_id: "data[0].id"
+      first_post_title: "data[0].title"
+      all_titles: "data[*].title"
+
+  - name: validate_response
+    type: if
+    condition: ["first_post_id", "==", 1]
+    then:
+      - name: log_success
+        type: print
+        message: "Successfully fetched post #{{ first_post_id }}: {{ first_post_title }}"
+    else:
+      - name: log_failure
+        type: print
+        message: "Unexpected data received: got ID {{ first_post_id }} instead of 1."
+
+  - name: check_keyword_in_titles
+    type: if
+    condition: ["{{ search_keyword }}", "in", "all_titles"]
+    then:
+      - name: keyword_found
+        type: print
+        message: "Found '{{ search_keyword }}' in the list of titles!"
+
+  - name: state_persistence_demo
+    type: shell
+    command: "echo '{\"status\": \"caching\", \"timestamp\": \"2026-04-03\"}'"
+    extract:
+      current_time: "timestamp"
+
+  - name: save_to_redis
+    type: db
+    engine: redis
+    command: ["SET", "{{ redis_key }}", "{{ first_post_title }} (Saved at {{ current_time }})"]
+
+  - name: verify_redis_save
+    type: db
+    engine: redis
+    command: ["GET", "{{ redis_key }}"]
+    extract:
+      cached_data: "data"
+
+  - name: final_report
+    type: print
+    message: |
+      Replay Demo Completed!
+      ------------------------
+      Post ID: {{ first_post_id }}
+      Title:   {{ first_post_title }}
+      Cached:  {{ cached_data }}

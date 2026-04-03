@@ -67,34 +67,62 @@ func (e *AssertionEngine) Check(rule workflow.AssertRule, actual any) error {
 		}
 	}
 
+	actualVal := actual
+	expectedVal := expectedValue
+
 	switch rule.Op {
 	case "eq", "==", "=":
-		if !reflect.DeepEqual(actual, expectedValue) {
-			return fmt.Errorf("expected %v (%s) to equal %v", actual, rule.Path, expectedValue)
+		if reflect.DeepEqual(actualVal, expectedVal) {
+			return nil
 		}
+		// Try string comparison fallback
+		if fmt.Sprintf("%v", actualVal) == fmt.Sprintf("%v", expectedVal) {
+			return nil
+		}
+		return fmt.Errorf("expected %v (%s) to equal %v", actualVal, rule.Path, expectedVal)
 	case "ne", "!=", "<>":
-		if reflect.DeepEqual(actual, expectedValue) {
-			return fmt.Errorf("expected %v (%s) to not equal %v", actual, rule.Path, expectedValue)
+		if reflect.DeepEqual(actualVal, expectedVal) {
+			return fmt.Errorf("expected %v (%s) to not equal %v", actualVal, rule.Path, expectedVal)
+		}
+		// String comparison check
+		if fmt.Sprintf("%v", actualVal) == fmt.Sprintf("%v", expectedVal) {
+			return fmt.Errorf("expected %v (%s) to not equal %v", actualVal, rule.Path, expectedVal)
 		}
 	case "gt", ">":
-		return e.compare(actual, expectedValue, "gt", rule.Path)
+		return e.compare(actualVal, expectedVal, "gt", rule.Path)
 	case "lt", "<":
-		return e.compare(actual, expectedValue, "lt", rule.Path)
+		return e.compare(actualVal, expectedVal, "lt", rule.Path)
 	case "ge", ">=":
-		return e.compare(actual, expectedValue, "ge", rule.Path)
+		return e.compare(actualVal, expectedVal, "ge", rule.Path)
 	case "le", "<=":
-		return e.compare(actual, expectedValue, "le", rule.Path)
+		return e.compare(actualVal, expectedVal, "le", rule.Path)
 	case "contains":
-		sActual, ok1 := actual.(string)
-		sExpected, ok2 := expectedValue.(string)
+		sActual, ok1 := actualVal.(string)
+		sExpected, ok2 := expectedVal.(string)
 		if !ok1 || !ok2 {
-			return fmt.Errorf("contains operator requires string values, got %T and %T", actual, expectedValue)
+			return fmt.Errorf("contains operator requires string values, got %T and %T", actualVal, expectedVal)
 		}
 		if !strings.Contains(sActual, sExpected) {
 			return fmt.Errorf("expected %q (%s) to contain %q", sActual, rule.Path, sExpected)
 		}
+	case "in":
+		// value 'in' array (where value is rendered expectedValue and array is actual)
+		v := reflect.ValueOf(actualVal)
+		if v.Kind() != reflect.Slice && v.Kind() != reflect.Array {
+			return fmt.Errorf("'in' operator requires actual value to be a slice or array, got %T at %s", actualVal, rule.Path)
+		}
+		found := false
+		for i := 0; i < v.Len(); i++ {
+			if reflect.DeepEqual(v.Index(i).Interface(), expectedVal) || fmt.Sprintf("%v", v.Index(i).Interface()) == fmt.Sprintf("%v", expectedVal) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return fmt.Errorf("expected %v to be in %v at %s", expectedVal, actualVal, rule.Path)
+		}
 	case "not_null":
-		if actual == nil {
+		if actualVal == nil {
 			return fmt.Errorf("expected %s to be not null", rule.Path)
 		}
 	default:

@@ -207,14 +207,25 @@ func (e *Engine) ExecuteIf(step workflow.Step, config workflow.Config) error {
 	}
 
 	ae := runner.NewAssertionEngine(vars)
-	rule := workflow.AssertRule{
-		Path:  step.Condition[0],
-		Op:    step.Condition[1],
-		Value: step.Condition[2],
-	}
+
+	// Resolve the path from state
+	path := step.Condition[0]
+	op := step.Condition[1]
+	expected := step.Condition[2]
 
 	// Use empty data since assertions are against state path
-	err := ae.Check(rule, nil)
+	rule := workflow.AssertRule{
+		Path:  path,
+		Op:    op,
+		Value: expected,
+	}
+
+	// We need to fetch the actual value from state BEFORE passing to Check
+	// because Check expects 'actual' to be the data to query against.
+	// But AssertionEngine.Check already handles Path resolution!
+	// The issue is that for 'if', we are checking against the STATE.
+
+	err := ae.Check(rule, vars)
 	if err == nil {
 		// Condition met (then)
 		return e.ExecuteSteps(step.Then, config)
