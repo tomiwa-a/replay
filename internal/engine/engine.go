@@ -23,6 +23,7 @@ type Engine struct {
 	httpRunner *runner.HTTPRunner
 	reporter   *reporter.Reporter
 	parser     Parser
+	debug      bool
 }
 
 func New(p Parser) *Engine {
@@ -40,6 +41,16 @@ func New(p Parser) *Engine {
 		reporter:   rep,
 		parser:     p,
 	}
+}
+
+// SetDebug enables or disables debug logging for the engine and all runners.
+func (e *Engine) SetDebug(debug bool) {
+	e.debug = debug
+}
+
+// IsDebug returns whether debug mode is enabled.
+func (e *Engine) IsDebug() bool {
+	return e.debug
 }
 
 func (e *Engine) Run(wf *workflow.Workflow) error {

@@ -22,11 +22,7 @@ var runCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		p := &parser.ParserWrapper{}
 		e := engine.New(p)
-
-		// Allow manual override for the engine too
-		if debug {
-			// Engine needs to be told about global debug if we want to pass it to workflow configs
-		}
+		e.SetDebug(debug)
 
 		// If concurrency is 1, run sequentially for better output clarity
 		if concurrency <= 1 {
