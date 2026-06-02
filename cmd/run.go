@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/replay/replay/internal/engine"
 	"github.com/replay/replay/internal/parser"
 	"github.com/replay/replay/internal/validate"
@@ -9,6 +11,7 @@ import (
 )
 
 var concurrency int
+var failFast bool
 
 var runCmd = &cobra.Command{
 	Use:           "run <workflow.yaml>...",
@@ -43,7 +46,9 @@ var runCmd = &cobra.Command{
 					}
 
 					if err := e.Run(wf); err != nil {
-						return err
+						if failFast {
+							return err
+						}
 					}
 				}
 			}
@@ -68,15 +73,22 @@ var runCmd = &cobra.Command{
 			if err := validate.Workflow(*wf); err != nil {
 				return err
 			}
+			if failFast && pool.HasFailure() {
+				continue
+			}
 			pool.Submit(wf)
 		}
 
 		pool.Wait()
+		if failFast && pool.HasFailure() {
+			return fmt.Errorf("one or more workflows failed")
+		}
 		return nil
 	},
 }
 
 func init() {
 	runCmd.Flags().IntVarP(&concurrency, "concurrency", "c", 1, "Number of concurrent workflows")
+	runCmd.Flags().BoolVar(&failFast, "fail-fast", false, "Stop execution on first failure")
 	rootCmd.AddCommand(runCmd)
 }

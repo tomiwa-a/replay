@@ -2,6 +2,7 @@ package engine
 
 import (
 	"sync"
+	"sync/atomic"
 
 	"github.com/replay/replay/internal/workflow"
 )
@@ -12,6 +13,7 @@ type WorkerPool struct {
 	tasks       chan *workflow.Workflow
 	wg          sync.WaitGroup
 	engine      *Engine
+	failed      atomic.Bool
 }
 
 // NewWorkerPool creates a new pool with the specified N workers.
@@ -35,7 +37,9 @@ func (p *WorkerPool) worker() {
 	defer p.wg.Done()
 	// Each worker logic will go here
 	for wf := range p.tasks {
-		_ = p.engine.Run(wf)
+		if err := p.engine.Run(wf); err != nil {
+			p.failed.Store(true)
+		}
 	}
 }
 
@@ -48,4 +52,9 @@ func (p *WorkerPool) Submit(wf *workflow.Workflow) {
 func (p *WorkerPool) Wait() {
 	close(p.tasks)
 	p.wg.Wait()
+}
+
+// HasFailure returns true if any workflow in the pool has failed.
+func (p *WorkerPool) HasFailure() bool {
+	return p.failed.Load()
 }
