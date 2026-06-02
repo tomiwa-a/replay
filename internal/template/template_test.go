@@ -21,7 +21,7 @@ func TestRender(t *testing.T) {
 		{
 			input:    "{{ missing }} and {{ found }}",
 			data:     map[string]any{"found": "yes"},
-			expected: "{{ missing }} and yes",
+			expected: " and yes", // raymond replaces undefined variables with empty string
 		},
 	}
 

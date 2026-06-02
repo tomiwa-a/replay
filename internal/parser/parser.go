@@ -28,8 +28,7 @@ func LoadFromFile(path string) ([]workflow.Workflow, error) {
 
 func LoadFromBytes(data []byte) ([]workflow.Workflow, error) {
 	decoder := yaml.NewDecoder(bytes.NewReader(data))
-	// No KnownFields(true) because multi-document YAML with comments
-	// at the top can sometimes be interpreted as unknown fields.
+	decoder.KnownFields(true)
 
 	var wfs []workflow.Workflow
 	for {

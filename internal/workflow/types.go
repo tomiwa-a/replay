@@ -14,6 +14,7 @@ type Config struct {
 	HTTP     HTTPConfig     `yaml:"http,omitempty" json:"http,omitempty"`
 	Postgres PostgresConfig `yaml:"postgres,omitempty" json:"postgres,omitempty"`
 	Redis    RedisConfig    `yaml:"redis,omitempty" json:"redis,omitempty"`
+	Vars     map[string]any `yaml:"vars,omitempty" json:"vars,omitempty"`
 }
 
 type HTTPConfig struct {
