@@ -243,6 +243,6 @@ Areas that will need help early:
 
 ## Status
 
-Replay is currently in the completion of Phase 1. You can track the granular implementation progress in [PHASES.md](PHASES.md).
+Replay is feature-complete for basic E2E testing workflows and is progressing toward production readiness. You can track the detailed implementation progress in [PHASES.md](PHASES.md).
 
 If this direction matches your testing needs, open an issue with your use case and expected workflow patterns.

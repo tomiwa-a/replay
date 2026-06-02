@@ -2,129 +2,132 @@
 
 This document tracks the detailed engineering tasks for Replay.
 
-## Phase 1: DSL and Parser
+## Phase 1: Stabilize Core Features & Fix Implementation Gaps
 
-Status: **Completed** ✅
+**Goal:** Ensure all core features are stable, complete, and production-ready by addressing gaps in the current implementation.
 
-- [x] Define Phase 1 YAML Schema (name, steps, http/db blocks)
-- [x] Create Go struct model for Workflow and Steps
-- [x] Implement strict YAML parser with unknown-field rejection
-- [x] Build multi-error validator (schema validation, field requirements)
-- [x] Create basic CLI with `validate` command
-- [x] Write parser and validator unit tests
-- [x] Create sample valid and invalid workflow files
-
----
-
-## Phase 2: State Management & HTTP Runner
-
-Status: **Completed** ✅
-
-- [x] **State Bag Implementation**
-  - [x] Create concurrency-safe variable store
-  - [x] Implement `Get` / `Set` for dynamic values
-- [x] **Templating Engine**
-  - [x] Build regex-based interpolator for `{{ var }}` strings
-  - [x] Support recursive placeholder resolution
-- [x] **HTTP Runner Core**
-  - [x] Implement `http` step executor
-  - [x] Support GET, POST, PUT, DELETE with headers and body
-  - [x] Add basic JSON response parsing
-- [x] **Data Extraction**
-  - [x] Integrate a JSONPath library (`github.com/ohler55/ojg`)
-  - [x] Implement `extract` logic to save response fields to State Bag
-- [x] **Phase 2 Tests**
-  - [x] Mock HTTP server tests
-  - [x] Variable interpolation unit tests
-
----
-
-## Phase 3: Execution Engine & CLI
-
-Status: **Completed** ✅
-
-- [x] **Workflow Runner Engine**
-  - [x] Create a central `Engine` that orchestrates steps
-  - [x] Implement sequential step execution logic
-  - [x] Integrate State Bag lifecycle (create once per run)
-- [x] **CLI Run Command**
-  - [x] Add `replay run <file>` command via Cobra
-  - [x] Logic to load, validate, and execute a workflow
-  - [x] Initial basic terminal logging (step start/end)
-- [x] **Environment Support**
-  - [x] Support loading `.env` files and mapping to ${VAR} in YAML
-- [x] **Integration Tests**
-  - [x] End-to-end test of `replay run` with a local mock server
-
----
-
-## Phase 4: Shell & Database Integration
-
-Status: **Completed** ✅
-
-- [x] **Shell Runner (The "Any App" Runner)**
-  - [x] Implement `type: shell` to execute CLI tools (`docker`, `sqlcmd`, etc.)
-  - [x] Capture `stdout` and `stderr` for extraction/assertion
-  - [x] Add execution timeout support (e.g., `timeout: 30s`)
-  - [x] Support multi-command sequential execution (list of commands)
-- [x] **PostgreSQL Native Adapter**
-  - [x] Integrate `pgx` for connection pooling
-  - [x] Implement raw SQL query execution
-  - [x] Support row-to-JSON mapping for extraction
-- [x] **Redis Native Adapter**
-  - [x] Integrate `go-redis`
-  - [x] Implement basic commands (`SET`, `GET`, `DEL`, `EXISTS`)
-- [x] **DB DSL Enhancements**
-  - [x] Implement flat DB shortcuts (`query`, `command`, `engine` at step level)
-  - [x] Default `engine` to `postgres` if not specified
-- [ ] **State persistence and isolation**
-  - [ ] Ensure DB results can be referenced accurately in subsequent steps
-
----
-
-## Phase 5: Assertions & Reporting
-
-Status: **Completed** ✅
-
-- [x] **Assertion Engine**
-  - [x] Implement operators: `eq`, `ne`, `gt`, `lt`, `contains`, `not_null`
-  - [x] Support JSONPath targeting in assertions
-  - [x] Add `ignore_error: true` support at step level
-  - [x] Support variable interpolation in assertion values
-  - [x] Compact list-style assertion syntax `["path", "op", "value"]`
-- [x] **Clean Terminal Reporter**
-  - [x] Implement colored output (Pass/Fail)
-  - [x] Show step duration and meaningful error snippets on failure
-
----
-
-## Phase 6: Parallelism & Advanced Features
-
-Status: **In-Progress** 🏗️
-
-- [x] **Concurrency Engine**
+- [ ] **Complete Phase 6 Items**
   - [x] Implement worker pool for multi-workflow execution
   - [x] Add `--concurrency N` flag
-  - [ ] Add `--fail-fast` toggle
-- [ ] **Parallel Command Execution**
+  - [ ] Add `--fail-fast` toggle to stop execution on first failure
   - [ ] Implement `parallel: true` for shell steps with multiple commands
-- [ ] **Cross-file Imports**
-  - [ ] Ability to `include` steps from other workflow files (e.g., `include: shared_auth.yaml`)
-  - [ ] Support parameter passing for included files
-- [ ] **Global Variable Persistence**
-  - [ ] Shared state across multiple workflow files in a single run
+  - [ ] Add ability to `include` steps from other workflow files with parameter passing
+  - [ ] Implement global variable persistence across multiple workflow files in a single run
 
----
+- [ ] **Fix Known Issues & Inconsistencies**
+  - [ ] Address debug flag propagation to engine components
+  - [ ] Ensure consistent error handling across all step types
+  - [ ] Fix any race conditions in state management under high concurrency
+  - [ ] Improve JSONPath error messages and handling
+  - [ ] Validate and improve variable interpolation edge cases
 
-## Phase 7: Conditional Logic & Advanced Orchestration
+- [ ] **Enhanced Testing**
+  - [ ] Add integration tests for all step type combinations
+  - [ ] Add chaos/testing for concurrent execution scenarios
+  - [ ] Add property-based testing for generators and transformers
+  - [ ] Achieve >90% unit test coverage
+  - [ ] Add end-to-end test suites for common workflow patterns
 
-Status: **Planned** 📅
+## Phase 2: Enhance Workflow Composition & Reusability
 
-- [ ] **Step-Level Branching (`type: if`)**
-  - [ ] Implement `if` condition using common operators (`==`, `!=`, `>`, `contains`)
-  - [ ] Support checking if a value exists in an array (`in`)
-  - [ ] Recursive `steps` support inside `then` and `else` blocks
-- [ ] **Advanced Variable Operations**
-  - [ ] Built-in functions (e.g., `len(list)`, `now()`)
-- [ ] **Error Handling Hooks**
-  - [ ] `on_error` global and step-level callbacks (e.g., alert on failure)
+**Goal:** Improve workflow composition capabilities to enable complex, reusable test suites.
+
+- [ ] **Advanced Import & Composition**
+  - [ ] Implement workflow libraries with versioning
+  - [ ] Add support for workflow templates with parameters
+  - [ ] Create workflow composition GUI/Diagrammer (optional)
+  - [ ] Implement workflow inheritance and extension mechanisms
+
+- [ ] **Enhanced State Management**
+  - [ ] Add scoped variables (workflow-scoped, step-scoped, global)
+  - [ ] Implement variable expiration and cleanup policies
+  - [ ] Add variable validation and type hints
+  - [ ] Implement secret management for sensitive variables
+
+- [ ] **Standard Library of Workflows**
+  - [ ] Create reusable authentication workflows (OAuth, JWT, API keys)
+  - [ ] Create database setup/teardown workflows
+  - [ ] Create API testing workflows for common patterns (CRUD, pagination, etc.)
+  - [ ] Create workflows for common test data generation
+
+## Phase 3: Advanced Features & Developer Experience
+
+**Goal:** Add advanced features that improve developer productivity and enable sophisticated testing scenarios.
+
+- [ ] **Built-in Functions & Transformers**
+  - [ ] Implement data transformation functions (string formatting, date math, etc.)
+  - [ ] Add mathematical and statistical functions
+  - [ ] Implement JSON manipulation functions (merge, filter, transform)
+  - [ ] Add faker-like data generation functions (names, addresses, etc.)
+
+- [ ] **Improved Configuration Management**
+  - [ ] Add config file support (replay.yaml) with environment variable interpolation
+  - [ ] Implement preset management for reusable configurations
+  - [ ] Add profile support (dev, test, prod, etc.)
+  - [ ] Implement configuration validation and schemas
+
+- [ ] **Developer Experience Enhancements**
+  - [ ] Add watch mode (`replay watch`) to auto-re-run workflows on file changes
+  - [ ] Improve IDE integration with better schema awareness
+  - [ ] Add interactive workflow debugger
+  - [ ] Create workflow visualization tools
+
+## Phase 4: Production Hardening & Observability
+
+**Goal:** Make Replay suitable for enterprise production use with robust observability and security features.
+
+- [ ] **Observability & Monitoring**
+  - [ ] Add structured logging (JSON output option)
+  - [ ] Implement metrics collection (Prometheus compatible)
+  - [ ] Add distributed tracing support (OpenTelemetry)
+  - [ ] Implement health check endpoints
+  - [ ] Add performance profiling and bottleneck identification
+
+- [ ] **Security Enhancements**
+  - [ ] Add secure secrets management (integration with Vault, AWS Secrets Manager, etc.)
+  - [ ] Implement secure handling of sensitive data in logs and output
+  - [ ] Add workflow signing and verification
+  - [ ] Implement role-based access control for workflow execution
+
+- [ ] **Reliability & Resilience**
+  - [ ] Add circuit breaker patterns for external service calls
+  - [ ] Implement retry mechanisms with exponential backoff
+  - [ ] Add graceful shutdown and signal handling
+  - [ ] Implement workflow checkpointing and recovery
+
+## Phase 5: Release & Distribution
+
+**Goal:** Prepare Replay for wide distribution and adoption with professional tooling and documentation.
+
+- [ ] **Release Infrastructure**
+  - [ ] Set up automated release pipeline with Goreleaser
+  - [ ] Create multi-platform binaries (Linux, macOS, Windows)
+  - [ ] Create Docker images (multi-arch: amd64, arm64)
+  - [ ] Set up Helm chart for Kubernetes deployment
+  - [ ] Create Homebrew tap for easy macOS/Linux installation
+
+- [ ] **Documentation & Examples**
+  - [ ] Create comprehensive user guide with examples
+  - [ ] Add API reference documentation
+  - [ ] Create video tutorials and walkthroughs
+  - [ ] Add industry-specific examples (finance, healthcare, e-commerce, etc.)
+  - [ ] Create troubleshooting guide and FAQ
+
+- [ ] **Community & Ecosystem**
+  - [ ] Create plugin system for extending Replay functionality
+  - [ ] Add sample plugins (Slack notifications, Jira integration, etc.)
+  - [ ] Establish contributor governance and maintainer guidelines
+  - [ ] Create showcase of public Replay workflows
+  - [ ] Develop training and certification materials
+
+## Summary
+
+| Phase | Focus Area | Key Deliverables |
+|-------|------------|------------------|
+| 1 | Stabilization & Completion | Fail-fast mode, parallel shell commands, enhanced testing, bug fixes |
+| 2 | Composition & Reusability | Advanced imports, scoped variables, standard workflow library |
+| 3 | Advanced Features | Built-in functions, config management, developer experience improvements |
+| 4 | Production Hardening | Observability, security, reliability features for enterprise use |
+| 5 | Release & Distribution | Professional packaging, documentation, ecosystem building |
+
+Each phase builds upon the previous one, taking Replay from its current feature-complete state to a production-ready, enterprise-grade E2E testing platform.
