@@ -102,9 +102,9 @@ func runPostgres(ctx context.Context, defaultDSN string, queryRaw string, step w
 
 	if len(step.Extract) > 0 {
 		for varName, path := range step.Extract {
-			expr, err := jp.ParseString(path)
+			expr, err := ParseJSONPath(path, step.Name, varName)
 			if err != nil {
-				return fmt.Errorf("invalid jsonpath %s: %w", path, err)
+				return err
 			}
 
 			// We treat results as the root data for JP

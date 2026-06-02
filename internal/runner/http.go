@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/ohler55/ojg/jp"
 	"github.com/replay/replay/internal/reporter"
 	"github.com/replay/replay/internal/state"
 	"github.com/replay/replay/internal/template"
@@ -125,11 +124,14 @@ func (r *HTTPRunner) Run(config workflow.HTTPConfig, step workflow.Step) (any, e
 			cleanPath = "$." + path
 		}
 
-		if p, err := jp.ParseString(cleanPath); err == nil {
-			values := p.Get(result)
-			if len(values) > 0 {
-				r.state.Set(key, values[0])
-			}
+		expr, err := ParseJSONPath(cleanPath, step.Name, key)
+		if err != nil {
+			return result, err
+		}
+
+		values := expr.Get(result)
+		if len(values) > 0 {
+			r.state.Set(key, values[0])
 		}
 	}
 

@@ -6,7 +6,6 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/ohler55/ojg/jp"
 	"github.com/replay/replay/internal/template"
 	"github.com/replay/replay/internal/workflow"
 )
@@ -44,13 +43,15 @@ func (e *AssertionEngine) Check(rule workflow.AssertRule, actual any) error {
 			expr = strings.Replace(expr, "$.res.", "$.", 1)
 		}
 
-		if p, err := jp.ParseString(expr); err == nil {
-			values := p.Get(data)
-			if len(values) > 0 {
-				actual = values[0]
-			} else {
-				actual = nil
-			}
+		exprObj, err := ParseJSONPath(expr, "", rule.Path)
+		if err != nil {
+			return err
+		}
+		values := exprObj.Get(data)
+		if len(values) > 0 {
+			actual = values[0]
+		} else {
+			actual = nil
 		}
 	} else {
 		actual = data

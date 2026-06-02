@@ -13,8 +13,6 @@ import (
 	"github.com/replay/replay/internal/state"
 	"github.com/replay/replay/internal/template"
 	"github.com/replay/replay/internal/workflow"
-
-	"github.com/ohler55/ojg/jp"
 )
 
 // Shell executes one or more shell commands.
@@ -199,9 +197,9 @@ func Shell(step workflow.Step, store *state.Store) error {
 				return fmt.Errorf("shell stdout is not valid JSON, cannot extract %s: %w", varName, errJSON)
 			}
 
-			expr, err := jp.ParseString(path)
+			expr, err := ParseJSONPath(path, step.Name, varName)
 			if err != nil {
-				return fmt.Errorf("invalid jsonpath %s: %w", path, err)
+				return err
 			}
 
 			results := expr.Get(data)
