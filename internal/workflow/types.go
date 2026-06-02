@@ -1,11 +1,18 @@
 package workflow
 
 type Workflow struct {
-	Name    string   `yaml:"name" json:"name"`
-	Version string   `yaml:"version,omitempty" json:"version,omitempty"`
-	Config  Config   `yaml:"config,omitempty" json:"config,omitempty"`
-	Steps   []Step   `yaml:"steps" json:"steps"`
-	Meta    MetaData `yaml:"meta,omitempty" json:"meta,omitempty"`
+	Name    string     `yaml:"name" json:"name"`
+	Version string     `yaml:"version,omitempty" json:"version,omitempty"`
+	Config  Config     `yaml:"config,omitempty" json:"config,omitempty"`
+	Include []Include  `yaml:"include,omitempty" json:"include,omitempty"`
+	Steps   []Step     `yaml:"steps" json:"steps"`
+	Meta    MetaData   `yaml:"meta,omitempty" json:"meta,omitempty"`
+}
+
+type Include struct {
+	File string         `yaml:"file" json:"file"`
+	As   string         `yaml:"as,omitempty" json:"as,omitempty"`
+	With map[string]any `yaml:"with,omitempty" json:"with,omitempty"`
 }
 
 type MetaData map[string]any

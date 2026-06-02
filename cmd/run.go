@@ -41,6 +41,9 @@ var runCmd = &cobra.Command{
 					if debug {
 						wf.Config.HTTP.Debug = true
 					}
+					if err := parser.ResolveIncludes(wf); err != nil {
+						return err
+					}
 					if err := validate.Workflow(*wf); err != nil {
 						return err
 					}
@@ -66,6 +69,20 @@ var runCmd = &cobra.Command{
 				return err
 			}
 			allWorkflows = append(allWorkflows, wfs...)
+		}
+
+		for i := range allWorkflows {
+			wf := &allWorkflows[i]
+			if err := parser.ResolveIncludes(wf); err != nil {
+				return err
+			}
+			if err := validate.Workflow(*wf); err != nil {
+				return err
+			}
+			if failFast && pool.HasFailure() {
+				continue
+			}
+			pool.Submit(wf)
 		}
 
 		for i := range allWorkflows {
