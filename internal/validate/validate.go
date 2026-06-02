@@ -182,14 +182,18 @@ func validateShellStep(stepPath string, step workflow.Step) Errors {
 	shell := step.Shell
 	if shell == nil {
 		var commands []string
-		switch c := step.Command.(type) {
-		case string:
-			commands = []string{c}
-		case []string:
-			commands = c
-		case []any:
-			for _, v := range c {
-				commands = append(commands, fmt.Sprintf("%v", v))
+		if len(step.Commands) > 0 {
+			commands = step.Commands
+		} else {
+			switch c := step.Command.(type) {
+			case string:
+				commands = []string{c}
+			case []string:
+				commands = c
+			case []any:
+				for _, v := range c {
+					commands = append(commands, fmt.Sprintf("%v", v))
+				}
 			}
 		}
 

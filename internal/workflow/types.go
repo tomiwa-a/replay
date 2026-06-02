@@ -70,8 +70,10 @@ type Step struct {
 	Engine  string `yaml:"engine,omitempty" json:"engine,omitempty"`
 
 	// Flat Shell shortcuts
-	Dir     string `yaml:"dir,omitempty" json:"dir,omitempty"`
-	Timeout string `yaml:"timeout,omitempty" json:"timeout,omitempty"`
+	Commands []string `yaml:"commands,omitempty" json:"commands,omitempty"`
+	Parallel bool     `yaml:"parallel,omitempty" json:"parallel,omitempty"`
+	Dir      string   `yaml:"dir,omitempty" json:"dir,omitempty"`
+	Timeout  string   `yaml:"timeout,omitempty" json:"timeout,omitempty"`
 
 	Message string            `yaml:"message,omitempty" json:"message,omitempty"`
 	Extract map[string]string `yaml:"extract,omitempty" json:"extract,omitempty"`
@@ -90,6 +92,7 @@ type HTTPRequest struct {
 type ShellRequest struct {
 	Command  string   `yaml:"command,omitempty" json:"command,omitempty"`
 	Commands []string `yaml:"commands,omitempty" json:"commands,omitempty"`
+	Parallel bool     `yaml:"parallel,omitempty" json:"parallel,omitempty"`
 	Dir      string   `yaml:"dir,omitempty" json:"dir,omitempty"`
 	Timeout  string   `yaml:"timeout,omitempty" json:"timeout,omitempty"`
 }
