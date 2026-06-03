@@ -18,41 +18,62 @@ type InstallTarget struct {
 	Dir  string // Destination directory for skill files
 }
 
-// DetectTargets checks the current environment for supported AI tools
-// and returns the directories where replay skills should be installed.
-func DetectTargets() []InstallTarget {
-	var targets []InstallTarget
+// ToolDef describes a supported AI tool and how to detect it.
+type ToolDef struct {
+	Name    string // Human-readable tool name
+	Dir     string // Destination directory for skill files
+	Exists  bool   // Whether the tool's config directory was found
+	Check   string // The path checked for existence
+}
 
+func dirExists(path string) bool {
+	info, err := os.Stat(path)
+	return err == nil && info.IsDir()
+}
+
+// ListAllTools returns all known AI tools with their detection status.
+func ListAllTools() []ToolDef {
 	home, _ := os.UserHomeDir()
 
-	if claudeDir := filepath.Join(home, ".claude"); dirExists(claudeDir) {
-		targets = append(targets, InstallTarget{
-			Name: "Claude Code",
-			Dir:  filepath.Join(claudeDir, "skills", "replay"),
-		})
+	tools := []ToolDef{
+		{
+			Name:   "Claude Code",
+			Dir:    filepath.Join(home, ".claude", "skills", "replay"),
+			Check:  filepath.Join(home, ".claude"),
+		},
+		{
+			Name:   "OpenCode",
+			Dir:    filepath.Join(home, ".config", "opencode", "skill", "replay"),
+			Check:  filepath.Join(home, ".config", "opencode"),
+		},
+		{
+			Name:   "Cursor",
+			Dir:    filepath.Join(".cursor", "rules", "replay"),
+			Check:  ".cursor",
+		},
+		{
+			Name:   "Windsurf",
+			Dir:    filepath.Join(".windsurf", "rules", "replay"),
+			Check:  ".windsurf",
+		},
 	}
 
-	if opencodeDir := filepath.Join(home, ".config", "opencode"); dirExists(opencodeDir) {
-		targets = append(targets, InstallTarget{
-			Name: "OpenCode",
-			Dir:  filepath.Join(opencodeDir, "skill", "replay"),
-		})
+	for i := range tools {
+		tools[i].Exists = dirExists(tools[i].Check)
 	}
 
-	if cursorDir := filepath.Join(".cursor"); dirExists(cursorDir) {
-		targets = append(targets, InstallTarget{
-			Name: "Cursor",
-			Dir:  filepath.Join(cursorDir, "rules", "replay"),
-		})
-	}
+	return tools
+}
 
-	if windsurfDir := filepath.Join(".windsurf"); dirExists(windsurfDir) {
-		targets = append(targets, InstallTarget{
-			Name: "Windsurf",
-			Dir:  filepath.Join(windsurfDir, "rules", "replay"),
-		})
+// DetectTargets returns only the detected (installed) tools.
+func DetectTargets() []InstallTarget {
+	all := ListAllTools()
+	var targets []InstallTarget
+	for _, t := range all {
+		if t.Exists {
+			targets = append(targets, InstallTarget{Name: t.Name, Dir: t.Dir})
+		}
 	}
-
 	return targets
 }
 
@@ -88,9 +109,4 @@ func Install(targets []InstallTarget) ([]string, error) {
 	}
 
 	return installed, nil
-}
-
-func dirExists(path string) bool {
-	info, err := os.Stat(path)
-	return err == nil && info.IsDir()
 }
