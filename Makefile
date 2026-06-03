@@ -1,4 +1,4 @@
-.PHONY: build test lint clean release-snapshot docker
+.PHONY: build test lint clean release-snapshot docker install
 
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 COMMIT  ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo "none")
@@ -7,6 +7,9 @@ LDFLAGS := -s -w -X github.com/replay/replay/internal/version.Version=$(VERSION)
 
 build:
 	CGO_ENABLED=0 go build -ldflags "$(LDFLAGS)" -o build/replay .
+
+install:
+	go install ./...
 
 test:
 	go test ./... -count=1
@@ -59,4 +62,5 @@ help:
 	@echo "  release-snapshot Run GoReleaser snapshot"
 	@echo "  release-check    Validate GoReleaser config"
 	@echo "  deps             Tidy and verify dependencies"
+	@echo "  install          Build and install replay binary via go install"
 	@echo "  help             Show this help"
