@@ -32,6 +32,7 @@ var runCmd = &cobra.Command{
 		e.SetMaxDepth(maxCallDepth)
 
 		if concurrency <= 1 {
+			var hasFailure bool
 			for _, path := range args {
 				wfs, err := parser.LoadFromFile(path)
 				if err != nil {
@@ -56,11 +57,15 @@ var runCmd = &cobra.Command{
 					}
 
 					if err := e.Run(wf); err != nil {
+						hasFailure = true
 						if failFast {
 							return err
 						}
 					}
 				}
+			}
+			if hasFailure {
+				return fmt.Errorf("one or more workflows failed")
 			}
 			return nil
 		}
@@ -97,7 +102,7 @@ var runCmd = &cobra.Command{
 		}
 
 		pool.Wait()
-		if failFast && pool.HasFailure() {
+		if pool.HasFailure() {
 			return fmt.Errorf("one or more workflows failed")
 		}
 		return nil
