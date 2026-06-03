@@ -96,3 +96,136 @@ func TestWorkflow_DBRules(t *testing.T) {
 		t.Fatalf("expected mutual exclusivity error, got %v", err)
 	}
 }
+
+func TestDetectCycles_NoCalls(t *testing.T) {
+	wf := workflow.Workflow{
+		Name: "no-calls",
+		Steps: []workflow.Step{
+			{Name: "step1", Type: workflow.StepTypePrint, Message: "hello"},
+		},
+	}
+
+	if err := DetectCycles(wf, "no-calls.yaml"); err != nil {
+		t.Fatalf("expected no cycles, got %v", err)
+	}
+}
+
+func TestDetectCycles_NoCycle(t *testing.T) {
+	wf := workflow.Workflow{
+		Name: "no-cycle",
+		Steps: []workflow.Step{
+			{Name: "call-a", Type: workflow.StepTypeCall, File: "a.yaml"},
+			{Name: "call-b", Type: workflow.StepTypeCall, File: "b.yaml"},
+		},
+	}
+
+	if err := DetectCycles(wf, "main.yaml"); err != nil {
+		t.Fatalf("expected no cycles, got %v", err)
+	}
+}
+
+func TestDetectCycles_DirectCycle(t *testing.T) {
+	wf := workflow.Workflow{
+		Name: "a.yaml",
+		Steps: []workflow.Step{
+			{Name: "call-a", Type: workflow.StepTypeCall, File: "a.yaml"},
+		},
+	}
+
+	err := DetectCycles(wf, "a.yaml")
+	if err == nil {
+		t.Fatal("expected cycle error, got nil")
+	}
+	if !strings.Contains(err.Error(), "cycle detected") {
+		t.Errorf("expected cycle detected error, got: %v", err)
+	}
+}
+
+func TestDetectCycles_MutualCycle(t *testing.T) {
+	wf := workflow.Workflow{
+		Name: "a.yaml",
+		Steps: []workflow.Step{
+			{Name: "call-b", Type: workflow.StepTypeCall, File: "b.yaml"},
+		},
+	}
+
+	// Cross-file cycles cannot be detected statically without loading the called file
+	if err := DetectCycles(wf, "a.yaml"); err != nil {
+		t.Fatalf("expected no cycles (cross-file cycles require runtime detection), got %v", err)
+	}
+}
+
+func TestDetectCycles_SelfCallWithTarget(t *testing.T) {
+	wf := workflow.Workflow{
+		Name: "a.yaml",
+		Steps: []workflow.Step{
+			{Name: "call-a-login", Type: workflow.StepTypeCall, File: "a.yaml", Target: "login"},
+			{Name: "call-a-login-again", Type: workflow.StepTypeCall, File: "a.yaml", Target: "login"},
+		},
+	}
+
+	// Calling the same target twice is not a cycle (they're sequential calls)
+	err := DetectCycles(wf, "a.yaml")
+	if err != nil {
+		t.Fatalf("expected no cycle (sequential calls are not cycles), got: %v", err)
+	}
+}
+
+func TestDetectCycles_SameFileDifferentTargets(t *testing.T) {
+	wf := workflow.Workflow{
+		Name: "a.yaml",
+		Steps: []workflow.Step{
+			{Name: "call-a-login", Type: workflow.StepTypeCall, File: "a.yaml", Target: "login"},
+			{Name: "call-a-logout", Type: workflow.StepTypeCall, File: "a.yaml", Target: "logout"},
+		},
+	}
+
+	if err := DetectCycles(wf, "a.yaml"); err != nil {
+		t.Fatalf("expected no cycles (different targets), got %v", err)
+	}
+}
+
+func TestDetectCycles_NestedIfCycle(t *testing.T) {
+	wf := workflow.Workflow{
+		Name: "a.yaml",
+		Steps: []workflow.Step{
+			{
+				Name:      "check",
+				Type:      workflow.StepTypeIf,
+				Condition: []string{"status", "==", "200"},
+				Then: []workflow.Step{
+					{Name: "call-a", Type: workflow.StepTypeCall, File: "a.yaml"},
+				},
+			},
+		},
+	}
+
+	err := DetectCycles(wf, "a.yaml")
+	if err == nil {
+		t.Fatal("expected cycle error, got nil")
+	}
+}
+
+func TestDetectCycles_NestedLoopCycle(t *testing.T) {
+	wf := workflow.Workflow{
+		Name: "a.yaml",
+		Steps: []workflow.Step{
+			{
+				Name:      "loop",
+				Type:      workflow.StepTypeLoop,
+				ForEach: "items, item",
+				Steps: []workflow.Step{
+					{Name: "call-a", Type: workflow.StepTypeCall, File: "a.yaml"},
+				},
+			},
+		},
+	}
+
+	err := DetectCycles(wf, "a.yaml")
+	if err == nil {
+		t.Fatal("expected cycle error, got nil")
+	}
+	if !strings.Contains(err.Error(), "cycle detected") {
+		t.Errorf("expected cycle detected error, got: %v", err)
+	}
+}

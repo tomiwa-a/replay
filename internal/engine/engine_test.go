@@ -1,6 +1,8 @@
 package engine
 
 import (
+	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -11,6 +13,18 @@ import (
 func newTestEngine() *Engine {
 	p := &parser.ParserWrapper{}
 	return New(p)
+}
+
+// mockParser allows controlling which workflows are loaded for testing
+type mockParser struct {
+	workflows map[string][]workflow.Workflow
+}
+
+func (m *mockParser) LoadFromFile(path string) ([]workflow.Workflow, error) {
+	if wfs, ok := m.workflows[path]; ok {
+		return wfs, nil
+	}
+	return nil, fmt.Errorf("file not found: %s", path)
 }
 
 func TestEngineWorkflowScope(t *testing.T) {
@@ -456,5 +470,441 @@ func TestEngineValidationTypes(t *testing.T) {
 				t.Errorf("validateType() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
+	}
+}
+
+func TestEngineDirectRecursion(t *testing.T) {
+	mp := &mockParser{
+		workflows: map[string][]workflow.Workflow{
+			"a.yaml": {
+				{
+					Name: "workflow-a",
+					Steps: []workflow.Step{
+						{
+							Name: "print-a",
+							Type: workflow.StepTypePrint,
+							Message: "in a",
+						},
+						{
+							Name: "call-a",
+							Type: workflow.StepTypeCall,
+							File: "a.yaml",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	e := New(mp)
+	wf := &workflow.Workflow{
+		Name: "test-direct-recursion",
+		Steps: []workflow.Step{
+			{
+				Name: "call-a",
+				Type: workflow.StepTypeCall,
+				File: "a.yaml",
+			},
+		},
+	}
+
+	err := e.Run(wf)
+	if err == nil {
+		t.Fatal("expected error for direct recursion")
+	}
+	if !strings.Contains(err.Error(), "cycle detected") {
+		t.Errorf("expected cycle detected error, got: %v", err)
+	}
+	t.Logf("error: %v", err)
+}
+
+func TestEngineMutualRecursion(t *testing.T) {
+	mp := &mockParser{
+		workflows: map[string][]workflow.Workflow{
+			"a.yaml": {
+				{
+					Name: "workflow-a",
+					Steps: []workflow.Step{
+						{
+							Name: "print-a",
+							Type: workflow.StepTypePrint,
+							Message: "in a",
+						},
+						{
+							Name: "call-b",
+							Type: workflow.StepTypeCall,
+							File: "b.yaml",
+						},
+					},
+				},
+			},
+			"b.yaml": {
+				{
+					Name: "workflow-b",
+					Steps: []workflow.Step{
+						{
+							Name: "print-b",
+							Type: workflow.StepTypePrint,
+							Message: "in b",
+						},
+						{
+							Name: "call-a",
+							Type: workflow.StepTypeCall,
+							File: "a.yaml",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	e := New(mp)
+	wf := &workflow.Workflow{
+		Name: "test-mutual-recursion",
+		Steps: []workflow.Step{
+			{
+				Name: "call-a",
+				Type: workflow.StepTypeCall,
+				File: "a.yaml",
+			},
+		},
+	}
+
+	err := e.Run(wf)
+	if err == nil {
+		t.Fatal("expected error for mutual recursion")
+	}
+	if !strings.Contains(err.Error(), "cycle detected") {
+		t.Errorf("expected cycle detected error, got: %v", err)
+	}
+	t.Logf("error: %v", err)
+}
+
+func TestEngineDiamondPattern(t *testing.T) {
+	mp := &mockParser{
+		workflows: map[string][]workflow.Workflow{
+			"a.yaml": {
+				{
+					Name: "workflow-a",
+					Steps: []workflow.Step{
+						{
+							Name: "print-a",
+							Type: workflow.StepTypePrint,
+							Message: "in a",
+						},
+					},
+				},
+			},
+			"b.yaml": {
+				{
+					Name: "workflow-b",
+					Steps: []workflow.Step{
+						{
+							Name: "print-b",
+							Type: workflow.StepTypePrint,
+							Message: "in b",
+						},
+						{
+							Name: "call-d",
+							Type: workflow.StepTypeCall,
+							File: "d.yaml",
+						},
+					},
+				},
+			},
+			"c.yaml": {
+				{
+					Name: "workflow-c",
+					Steps: []workflow.Step{
+						{
+							Name: "print-c",
+							Type: workflow.StepTypePrint,
+							Message: "in c",
+						},
+						{
+							Name: "call-d",
+							Type: workflow.StepTypeCall,
+							File: "d.yaml",
+						},
+					},
+				},
+			},
+			"d.yaml": {
+				{
+					Name: "workflow-d",
+					Steps: []workflow.Step{
+						{
+							Name: "print-d",
+							Type: workflow.StepTypePrint,
+							Message: "in d",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	e := New(mp)
+	wf := &workflow.Workflow{
+		Name: "test-diamond",
+		Steps: []workflow.Step{
+			{
+				Name: "call-b",
+				Type: workflow.StepTypeCall,
+				File: "b.yaml",
+			},
+			{
+				Name: "call-c",
+				Type: workflow.StepTypeCall,
+				File: "c.yaml",
+			},
+		},
+	}
+
+	err := e.Run(wf)
+	if err != nil {
+		t.Fatalf("unexpected error for diamond pattern: %v", err)
+	}
+}
+
+func TestEngineDepthLimit(t *testing.T) {
+	mp := &mockParser{
+		workflows: map[string][]workflow.Workflow{
+			"a.yaml": {
+				{
+					Name: "workflow-a",
+					Steps: []workflow.Step{
+						{
+							Name: "call-b",
+							Type: workflow.StepTypeCall,
+							File: "b.yaml",
+						},
+					},
+				},
+			},
+			"b.yaml": {
+				{
+					Name: "workflow-b",
+					Steps: []workflow.Step{
+						{
+							Name: "call-c",
+							Type: workflow.StepTypeCall,
+							File: "c.yaml",
+						},
+					},
+				},
+			},
+			"c.yaml": {
+				{
+					Name: "workflow-c",
+					Steps: []workflow.Step{
+						{
+							Name: "call-d",
+							Type: workflow.StepTypeCall,
+							File: "d.yaml",
+						},
+					},
+				},
+			},
+			"d.yaml": {
+				{
+					Name: "workflow-d",
+					Steps: []workflow.Step{
+						{
+							Name: "print-d",
+							Type: workflow.StepTypePrint,
+							Message: "in d",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	e := New(mp)
+	e.SetMaxDepth(3)
+
+	wf := &workflow.Workflow{
+		Name: "test-depth-limit",
+		Steps: []workflow.Step{
+			{
+				Name: "call-a",
+				Type: workflow.StepTypeCall,
+				File: "a.yaml",
+			},
+		},
+	}
+
+	err := e.Run(wf)
+	if err == nil {
+		t.Fatal("expected error for depth limit")
+	}
+	if !strings.Contains(err.Error(), "call depth exceeded") {
+		t.Errorf("expected call depth exceeded error, got: %v", err)
+	}
+	t.Logf("error: %v", err)
+}
+
+func TestEngineNormalCall(t *testing.T) {
+	mp := &mockParser{
+		workflows: map[string][]workflow.Workflow{
+			"child.yaml": {
+				{
+					Name: "workflow-child",
+					Steps: []workflow.Step{
+						{
+							Name: "print-child",
+							Type: workflow.StepTypePrint,
+							Message: "in child",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	e := New(mp)
+	wf := &workflow.Workflow{
+		Name: "test-normal-call",
+		Steps: []workflow.Step{
+			{
+				Name: "print-parent",
+				Type: workflow.StepTypePrint,
+				Message: "in parent",
+			},
+			{
+				Name: "call-child",
+				Type: workflow.StepTypeCall,
+				File: "child.yaml",
+			},
+		},
+	}
+
+	err := e.Run(wf)
+	if err != nil {
+		t.Fatalf("unexpected error for normal call: %v", err)
+	}
+}
+
+func TestEngineCallSameTargetDifferentCallers(t *testing.T) {
+	mp := &mockParser{
+		workflows: map[string][]workflow.Workflow{
+			"a.yaml": {
+				{
+					Name: "workflow-a",
+					Steps: []workflow.Step{
+						{
+							Name: "call-b-target",
+							Type: workflow.StepTypeCall,
+							File: "b.yaml",
+							Target: "step1",
+						},
+					},
+				},
+			},
+			"b.yaml": {
+				{
+					Name: "workflow-b",
+					Steps: []workflow.Step{
+						{
+							Name: "step1",
+							Type: workflow.StepTypePrint,
+							Message: "step1 in b",
+						},
+						{
+							Name: "step2",
+							Type: workflow.StepTypePrint,
+							Message: "step2 in b",
+						},
+					},
+				},
+			},
+			"c.yaml": {
+				{
+					Name: "workflow-c",
+					Steps: []workflow.Step{
+						{
+							Name: "call-b-target",
+							Type: workflow.StepTypeCall,
+							File: "b.yaml",
+							Target: "step1",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	e := New(mp)
+	wf := &workflow.Workflow{
+		Name: "test-same-target-different-callers",
+		Steps: []workflow.Step{
+			{
+				Name: "call-a",
+				Type: workflow.StepTypeCall,
+				File: "a.yaml",
+			},
+			{
+				Name: "call-c",
+				Type: workflow.StepTypeCall,
+				File: "c.yaml",
+			},
+		},
+	}
+
+	err := e.Run(wf)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestEngineCallStackResetBetweenWorkflows(t *testing.T) {
+	mp := &mockParser{
+		workflows: map[string][]workflow.Workflow{
+			"a.yaml": {
+				{
+					Name: "workflow-a",
+					Steps: []workflow.Step{
+						{
+							Name: "print-a",
+							Type: workflow.StepTypePrint,
+							Message: "in a",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	e := New(mp)
+
+	// First workflow
+	wf1 := &workflow.Workflow{
+		Name: "workflow-1",
+		Steps: []workflow.Step{
+			{
+				Name: "call-a",
+				Type: workflow.StepTypeCall,
+				File: "a.yaml",
+			},
+		},
+	}
+	if err := e.Run(wf1); err != nil {
+		t.Fatalf("first workflow failed: %v", err)
+	}
+
+	// Second workflow should work fine (call stack reset)
+	wf2 := &workflow.Workflow{
+		Name: "workflow-2",
+		Steps: []workflow.Step{
+			{
+				Name: "call-a",
+				Type: workflow.StepTypeCall,
+				File: "a.yaml",
+			},
+		},
+	}
+	if err := e.Run(wf2); err != nil {
+		t.Fatalf("second workflow failed: %v", err)
 	}
 }

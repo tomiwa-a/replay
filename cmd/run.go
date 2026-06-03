@@ -15,6 +15,7 @@ var concurrency int
 var failFast bool
 var profile string
 var configFile string
+var maxCallDepth int
 
 var runCmd = &cobra.Command{
 	Use:           "run <workflow.yaml>...",
@@ -28,6 +29,7 @@ var runCmd = &cobra.Command{
 		p := &parser.ParserWrapper{}
 		e := engine.New(p)
 		e.SetDebug(debug)
+		e.SetMaxDepth(maxCallDepth)
 
 		if concurrency <= 1 {
 			for _, path := range args {
@@ -124,5 +126,6 @@ func init() {
 	runCmd.Flags().BoolVar(&failFast, "fail-fast", false, "Stop execution on first failure")
 	runCmd.Flags().StringVar(&profile, "profile", "", "Config profile to use (e.g., dev, staging, prod)")
 	runCmd.Flags().StringVar(&configFile, "config", "", "Path to config file (default: replay.yaml)")
+	runCmd.Flags().IntVar(&maxCallDepth, "max-call-depth", 100, "Maximum workflow call depth before aborting")
 	rootCmd.AddCommand(runCmd)
 }

@@ -2,6 +2,7 @@ package validate
 
 import (
 	"fmt"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -316,4 +317,103 @@ func validateIfStep(stepPath string, step workflow.Step) Errors {
 		errs = append(errs, ValidationError{Path: stepPath + ".then", Message: "must contain at least one step"})
 	}
 	return errs
+}
+
+// callEdge represents a call relationship between workflows
+type callEdge struct {
+	From   string
+	To     string
+	Target string
+	Step   string
+}
+
+// DetectCycles checks for recursive call cycles in a workflow.
+// It detects direct self-calls (a file calling itself without a target).
+// Cross-file and mutual recursion cycles are detected at runtime.
+// sourceFile is the path to the workflow file being validated.
+func DetectCycles(wf workflow.Workflow, sourceFile string) error {
+	edges := buildCallGraph(wf)
+	if len(edges) == 0 {
+		return nil
+	}
+
+	sourceBase := strings.TrimSuffix(filepath.Base(sourceFile), filepath.Ext(sourceFile))
+
+	for _, edge := range edges {
+		if edge.Target == "" {
+			toBase := strings.TrimSuffix(filepath.Base(edge.To), filepath.Ext(edge.To))
+			if toBase == sourceBase || toBase == wf.Name || edge.To == wf.Name {
+				return fmt.Errorf("cycle detected: %s → %s", wf.Name, edge.To)
+			}
+		}
+	}
+
+	return nil
+}
+
+// buildCallGraph extracts all call edges from a workflow
+func buildCallGraph(wf workflow.Workflow) []callEdge {
+	var edges []callEdge
+
+	var walkSteps func(steps []workflow.Step)
+	walkSteps = func(steps []workflow.Step) {
+		for _, step := range steps {
+			if step.Type == workflow.StepTypeCall && step.File != "" {
+				edges = append(edges, callEdge{
+					From:   wf.Name,
+					To:     step.File,
+					Target: step.Target,
+					Step:   step.Name,
+				})
+			}
+			// Recurse into nested steps (if/loop)
+			walkSteps(step.Then)
+			walkSteps(step.Else)
+			walkSteps(step.Steps)
+		}
+	}
+
+	walkSteps(wf.Steps)
+	return edges
+}
+
+// PrintExecutionPlan prints the execution plan for a workflow
+func PrintExecutionPlan(wf workflow.Workflow, out func(string, ...any)) {
+	out("execution plan:\n")
+	printSteps(wf.Steps, 1, wf.Name, out)
+}
+
+func printSteps(steps []workflow.Step, indent int, context string, out func(string, ...any)) {
+	prefix := strings.Repeat("  ", indent)
+	for i, step := range steps {
+		stepNum := fmt.Sprintf("%d.", i+1)
+		stepType := string(step.Type)
+
+		switch step.Type {
+		case workflow.StepTypeCall:
+			target := ""
+			if step.Target != "" {
+				target = ":" + step.Target
+			}
+			out("%s %s [%s] → %s%s\n", prefix, stepNum, stepType, step.File, target)
+			// Note: We can't recurse into called files without loading them
+		case workflow.StepTypeIf:
+			out("%s %s [%s] condition=%v\n", prefix, stepNum, stepType, step.Condition)
+			if len(step.Then) > 0 {
+				out("%s   then:\n", prefix)
+				printSteps(step.Then, indent+2, context, out)
+			}
+			if len(step.Else) > 0 {
+				out("%s   else:\n", prefix)
+				printSteps(step.Else, indent+2, context, out)
+			}
+		case workflow.StepTypeLoop:
+			out("%s %s [%s] foreach=%s\n", prefix, stepNum, stepType, step.ForEach)
+			if len(step.Steps) > 0 {
+				printSteps(step.Steps, indent+1, context, out)
+			}
+		default:
+			out("%s %s [%s] %s\n", prefix, stepNum, stepType, step.Name)
+		}
+	}
 }

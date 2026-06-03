@@ -18,12 +18,26 @@ type Parser interface {
 	LoadFromFile(path string) ([]workflow.Workflow, error)
 }
 
+type callEntry struct {
+	File string
+	Step string
+}
+
+func (e callEntry) String() string {
+	if e.Step != "" {
+		return fmt.Sprintf("%s:%s", e.File, e.Step)
+	}
+	return e.File
+}
+
 type Engine struct {
 	state      *state.Store
 	httpRunner *runner.HTTPRunner
 	reporter   *reporter.Reporter
 	parser     Parser
 	debug      bool
+	callStack  []callEntry
+	maxDepth   int
 }
 
 func New(p Parser) *Engine {
@@ -40,6 +54,7 @@ func New(p Parser) *Engine {
 		httpRunner: runner.NewHTTPRunner(s, rep),
 		reporter:   rep,
 		parser:     p,
+		maxDepth:   100,
 	}
 }
 
@@ -53,6 +68,20 @@ func (e *Engine) IsDebug() bool {
 
 func (e *Engine) State() *state.Store {
 	return e.state
+}
+
+func (e *Engine) SetMaxDepth(depth int) {
+	if depth > 0 {
+		e.maxDepth = depth
+	}
+}
+
+func (e *Engine) formatStack() string {
+	parts := make([]string, len(e.callStack))
+	for i, entry := range e.callStack {
+		parts[i] = entry.String()
+	}
+	return strings.Join(parts, " → ")
 }
 
 func (e *Engine) Run(wf *workflow.Workflow) error {
@@ -192,6 +221,25 @@ func (e *Engine) ExecuteCall(step workflow.Step, config workflow.Config) error {
 	if filePath == "" {
 		return fmt.Errorf("call step requires 'file' field")
 	}
+
+	entry := callEntry{File: filePath, Step: target}
+
+	// Check for cycle
+	for _, s := range e.callStack {
+		if s.File == entry.File && s.Step == entry.Step {
+			stack := e.formatStack()
+			return fmt.Errorf("cycle detected: %s → %s", stack, entry)
+		}
+	}
+
+	// Check depth limit
+	if e.maxDepth > 0 && len(e.callStack) >= e.maxDepth {
+		return fmt.Errorf("call depth exceeded (%d): %s", e.maxDepth, e.formatStack())
+	}
+
+	// Push onto call stack
+	e.callStack = append(e.callStack, entry)
+	defer func() { e.callStack = e.callStack[:len(e.callStack)-1] }()
 
 	wfs, err := e.parser.LoadFromFile(filePath)
 	if err != nil {
