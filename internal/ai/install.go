@@ -47,6 +47,11 @@ func ListAllTools() []ToolDef {
 			Check:  filepath.Join(home, ".config", "opencode"),
 		},
 		{
+			Name:   "Gemini CLI",
+			Dir:    filepath.Join(home, ".gemini", "skills", "replay"),
+			Check:  filepath.Join(home, ".gemini"),
+		},
+		{
 			Name:   "Cursor",
 			Dir:    filepath.Join(".cursor", "rules", "replay"),
 			Check:  ".cursor",
@@ -55,6 +60,11 @@ func ListAllTools() []ToolDef {
 			Name:   "Windsurf",
 			Dir:    filepath.Join(".windsurf", "rules", "replay"),
 			Check:  ".windsurf",
+		},
+		{
+			Name:   "Antigravity",
+			Dir:    filepath.Join(".agent", "skills", "replay"),
+			Check:  ".agent",
 		},
 	}
 
@@ -71,6 +81,24 @@ func DetectTargets() []InstallTarget {
 	var targets []InstallTarget
 	for _, t := range all {
 		if t.Exists {
+			targets = append(targets, InstallTarget{Name: t.Name, Dir: t.Dir})
+		}
+	}
+	return targets
+}
+
+// LookupTargets returns InstallTargets for the given tool names (case-insensitive).
+// Unknown names are ignored.
+func LookupTargets(names []string) []InstallTarget {
+	all := ListAllTools()
+	normalized := make(map[string]ToolDef)
+	for _, t := range all {
+		normalized[strings.ToLower(t.Name)] = t
+	}
+
+	var targets []InstallTarget
+	for _, name := range names {
+		if t, ok := normalized[strings.ToLower(strings.TrimSpace(name))]; ok {
 			targets = append(targets, InstallTarget{Name: t.Name, Dir: t.Dir})
 		}
 	}

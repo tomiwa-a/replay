@@ -12,16 +12,11 @@ import (
 var installCmd = &cobra.Command{
 	Use:           "install ai-skills",
 	Short:         "Install AI agent skills for replay workflow generation",
-	Long: `Installs replay AI skill files into detected AI tool directories.
+	Long: `Installs replay AI skill files into selected AI tool directories.
 
-The skill files teach AI coding agents (Claude Code, Cursor, OpenCode, Windsurf, etc.)
-how to generate replay workflow YAML files from plain-language descriptions.
-
-Detected tools:
-  - Claude Code (~/.claude/)
-  - OpenCode (~/.config/opencode/)
-  - Cursor (.cursor/)
-  - Windsurf (.windsurf/)
+The skill files teach AI coding agents (Claude Code, Cursor, OpenCode,
+Gemini CLI, Windsurf, Antigravity, etc.) how to generate replay workflow
+YAML files from plain-language descriptions.
 
 To use after installation, ask your AI agent:
   "Generate a replay workflow to test the login endpoint"`,
@@ -34,34 +29,65 @@ To use after installation, ask your AI agent:
 
 		fmt.Fprintf(cmd.OutOrStdout(), "Scanning for AI tools...\n\n")
 
-		var detectedNames []string
-		for _, t := range all {
+		for i, t := range all {
 			status := "✗"
 			if t.Exists {
 				status = "✓"
-				detectedNames = append(detectedNames, t.Name)
 			}
-			fmt.Fprintf(cmd.OutOrStdout(), "  [%s] %s\n", status, t.Name)
+			fmt.Fprintf(cmd.OutOrStdout(), "  [%d] [%s] %s\n", i+1, status, t.Name)
 		}
 
 		fmt.Fprintln(cmd.OutOrStdout())
+
+		var detectedNames []string
+		for _, t := range all {
+			if t.Exists {
+				detectedNames = append(detectedNames, t.Name)
+			}
+		}
 
 		if len(detectedNames) == 0 {
 			fmt.Fprintf(cmd.OutOrStdout(), "No supported AI tools detected.\n")
 			return nil
 		}
 
-		fmt.Fprintf(cmd.OutOrStdout(), "Install to all detected tools? [Y/n] ")
+		fmt.Fprintf(cmd.OutOrStdout(), "Install to (comma-separated numbers/names, or 'all'): ")
 		reader := bufio.NewReader(cmd.InOrStdin())
 		answer, _ := reader.ReadString('\n')
-		answer = strings.TrimSpace(strings.ToLower(answer))
+		answer = strings.TrimSpace(answer)
 
-		if answer == "n" || answer == "no" {
+		if answer == "" {
 			fmt.Fprintf(cmd.OutOrStdout(), "Skipped.\n")
 			return nil
 		}
 
-		targets := ai.DetectTargets()
+		var targets []ai.InstallTarget
+
+		if strings.ToLower(answer) == "all" {
+			targets = ai.DetectTargets()
+		} else {
+			parts := strings.Split(answer, ",")
+			var names []string
+			for _, p := range parts {
+				p = strings.TrimSpace(p)
+				if p == "" {
+					continue
+				}
+				// Check if it's a number
+				if i, ok := parseNumber(p); ok && i >= 1 && i <= len(all) {
+					names = append(names, all[i-1].Name)
+				} else {
+					names = append(names, p)
+				}
+			}
+			targets = ai.LookupTargets(names)
+		}
+
+		if len(targets) == 0 {
+			fmt.Fprintf(cmd.OutOrStdout(), "No matching tools selected.\n")
+			return nil
+		}
+
 		installed, err := ai.Install(targets)
 		if err != nil {
 			return fmt.Errorf("install failed: %w", err)
@@ -76,6 +102,17 @@ To use after installation, ask your AI agent:
 
 		return nil
 	},
+}
+
+func parseNumber(s string) (int, bool) {
+	var n int
+	for _, c := range s {
+		if c < '0' || c > '9' {
+			return 0, false
+		}
+		n = n*10 + int(c-'0')
+	}
+	return n, true
 }
 
 func init() {
