@@ -3,8 +3,8 @@ package engine
 import (
 	"fmt"
 	"os"
+	"regexp"
 	"strings"
-
 	"time"
 
 	"github.com/replay/replay/internal/reporter"
@@ -43,31 +43,34 @@ func New(p Parser) *Engine {
 	}
 }
 
-// SetDebug enables or disables debug logging for the engine and all runners.
 func (e *Engine) SetDebug(debug bool) {
 	e.debug = debug
 }
 
-// IsDebug returns whether debug mode is enabled.
 func (e *Engine) IsDebug() bool {
 	return e.debug
 }
 
-func (e *Engine) Run(wf *workflow.Workflow) error {
-	// Set global config into state for use in templates (e.g., baseURL)
-	e.state.Set("config", wf.Config)
+func (e *Engine) State() *state.Store {
+	return e.state
+}
 
-	// Flatten config.vars into the state so they can be referenced directly
-	// as {{ var_name }} in templates.
+func (e *Engine) Run(wf *workflow.Workflow) error {
+	e.state.Enter(state.ScopeWorkflow)
+
+	e.state.Set("config", wf.Config)
 	for k, v := range wf.Config.Vars {
 		e.state.Set(k, v)
 	}
 
+	if err := e.validateWorkflowVars(wf); err != nil {
+		e.state.Exit()
+		return err
+	}
+
 	vars := e.state.All()
-	// Ensure the workflow name itself is in the state for interpolation
 	e.state.Set("name", wf.Name)
 
-	// Render workflow name if it contains variables
 	wfName := template.Render(wf.Name, vars)
 	if wfName == "" {
 		wfName = "nameless workflow"
@@ -78,15 +81,19 @@ func (e *Engine) Run(wf *workflow.Workflow) error {
 
 	if err := e.ExecuteSteps(wf.Steps, wf.Config); err != nil {
 		e.reporter.WorkflowFinished(wfName, false, time.Since(wfStart))
+		e.state.Exit()
 		return err
 	}
 
 	e.reporter.WorkflowFinished(wfName, true, time.Since(wfStart))
+	e.state.Exit()
 	return nil
 }
 
 func (e *Engine) ExecuteSteps(steps []workflow.Step, config workflow.Config) error {
 	for _, step := range steps {
+		e.state.Enter(state.ScopeStep)
+
 		vars := e.state.All()
 		stepName := template.Render(step.Name, vars)
 		if stepName == "" {
@@ -116,17 +123,26 @@ func (e *Engine) ExecuteSteps(steps []workflow.Step, config workflow.Config) err
 			err = fmt.Errorf("step type %q not yet implemented", step.Type)
 		}
 
+		if len(step.Cleanup) > 0 {
+			for _, k := range step.Cleanup {
+				e.state.Delete(k)
+			}
+		}
+
 		duration := time.Since(stepStart)
 		if err != nil {
 			if step.IgnoreError {
 				e.reporter.StepFailed(err, duration, true)
 			} else {
 				e.reporter.StepFailed(err, duration, false)
+				e.state.Exit()
 				return fmt.Errorf("step %q failed: %w", stepName, err)
 			}
 		} else {
 			e.reporter.StepPassed(duration)
 		}
+
+		e.state.Exit()
 	}
 	return nil
 }
@@ -136,7 +152,6 @@ func (e *Engine) ExecuteLoop(step workflow.Step, config workflow.Config) error {
 		return fmt.Errorf("loop step requires 'foreach' field")
 	}
 
-	// format: "list, item"
 	parts := strings.Split(step.ForEach, ",")
 	if len(parts) != 2 {
 		return fmt.Errorf("foreach must be in format 'list, item'")
@@ -149,23 +164,22 @@ func (e *Engine) ExecuteLoop(step workflow.Step, config workflow.Config) error {
 		return fmt.Errorf("variable %q not found for loop", listKey)
 	}
 
-	// Handle both []any and []map[string]any etc.
-	// Since we use json.Unmarshal into any, it should be []any for arrays
 	items, ok := val.([]any)
 	if !ok {
 		return fmt.Errorf("variable %q is not a list", listKey)
 	}
 
 	for i, item := range items {
-		// Set loop context
 		e.state.Set(itemKey, item)
 		e.state.Set("index", i)
 
-		// Execute nested steps
 		if err := e.ExecuteSteps(step.Steps, config); err != nil {
 			return err
 		}
 	}
+
+	e.state.Delete(itemKey)
+	e.state.Delete("index")
 
 	return nil
 }
@@ -184,9 +198,9 @@ func (e *Engine) ExecuteCall(step workflow.Step, config workflow.Config) error {
 		return fmt.Errorf("failed to load called file %q: %w", filePath, err)
 	}
 
-	// Apply input variables from 'with' block
+	snapshot := e.state.Snapshot()
+
 	for k, v := range step.With {
-		// Interpolate the value before setting it
 		if s, ok := v.(string); ok {
 			e.state.Set(k, template.Render(s, vars))
 		} else {
@@ -194,27 +208,56 @@ func (e *Engine) ExecuteCall(step workflow.Step, config workflow.Config) error {
 		}
 	}
 
-	// Case 1: Call a specific step within a file
+	executeSteps := func(steps []workflow.Step, cfg workflow.Config) error {
+		return e.ExecuteSteps(steps, cfg)
+	}
+
 	if target != "" {
 		for _, wf := range wfs {
 			for _, s := range wf.Steps {
 				if s.Name == target {
-					// Found the target step, execute ONLY this step
-					return e.ExecuteSteps([]workflow.Step{s}, wf.Config)
+					if err := executeSteps([]workflow.Step{s}, wf.Config); err != nil {
+						e.state.Restore(snapshot)
+						return err
+					}
+					e.applyReturns(step.Returns, snapshot)
+					return nil
 				}
 			}
 		}
+		e.state.Restore(snapshot)
 		return fmt.Errorf("step %q not found in file %q", target, filePath)
 	}
 
-	// Case 2: Call the whole workflow(s)
 	for _, wf := range wfs {
-		if err := e.ExecuteSteps(wf.Steps, wf.Config); err != nil {
+		if err := executeSteps(wf.Steps, wf.Config); err != nil {
+			e.state.Restore(snapshot)
 			return err
 		}
 	}
 
+	e.applyReturns(step.Returns, snapshot)
 	return nil
+}
+
+func (e *Engine) applyReturns(returns []string, snapshot map[string]any) {
+	if len(returns) == 0 {
+		e.state.Restore(snapshot)
+		return
+	}
+
+	returned := make(map[string]any)
+	for _, k := range returns {
+		if v, ok := e.state.Get(k); ok {
+			returned[k] = v
+		}
+	}
+
+	e.state.Restore(snapshot)
+
+	for k, v := range returned {
+		e.state.Set(k, v)
+	}
 }
 
 func (e *Engine) ExecuteIf(step workflow.Step, config workflow.Config) error {
@@ -225,29 +268,91 @@ func (e *Engine) ExecuteIf(step workflow.Step, config workflow.Config) error {
 
 	ae := runner.NewAssertionEngine(vars)
 
-	// Resolve the path from state
 	path := step.Condition[0]
 	op := step.Condition[1]
 	expected := step.Condition[2]
 
-	// Use empty data since assertions are against state path
 	rule := workflow.AssertRule{
 		Path:  path,
 		Op:    op,
 		Value: expected,
 	}
 
-	// We need to fetch the actual value from state BEFORE passing to Check
-	// because Check expects 'actual' to be the data to query against.
-	// But AssertionEngine.Check already handles Path resolution!
-	// The issue is that for 'if', we are checking against the STATE.
-
 	err := ae.Check(rule, vars)
 	if err == nil {
-		// Condition met (then)
 		return e.ExecuteSteps(step.Then, config)
 	} else {
-		// Condition failed (else)
 		return e.ExecuteSteps(step.Else, config)
 	}
+}
+
+func (e *Engine) validateWorkflowVars(wf *workflow.Workflow) error {
+	for _, def := range wf.Config.Validate {
+		val, ok := e.state.Get(def.Name)
+
+		if def.Required && !ok {
+			return fmt.Errorf("variable %q is required but not set in workflow %q", def.Name, wf.Name)
+		}
+
+		if !ok {
+			if def.Default != nil {
+				e.state.Set(def.Name, def.Default)
+			}
+			continue
+		}
+
+		if def.Type != "" {
+			if err := validateType(val, def.Type); err != nil {
+				return fmt.Errorf("variable %q: %w", def.Name, err)
+			}
+		}
+
+		if def.Pattern != "" {
+			s := fmt.Sprintf("%v", val)
+			matched, err := regexp.MatchString(def.Pattern, s)
+			if err != nil {
+				return fmt.Errorf("variable %q: invalid pattern %q: %w", def.Name, def.Pattern, err)
+			}
+			if !matched {
+				return fmt.Errorf("variable %q value %q does not match pattern %q", def.Name, s, def.Pattern)
+			}
+		}
+	}
+	return nil
+}
+
+func validateType(val any, typ string) error {
+	switch typ {
+	case "string":
+		if _, ok := val.(string); !ok {
+			return fmt.Errorf("expected type string, got %T", val)
+		}
+	case "number":
+		switch v := val.(type) {
+		case int, int64, float64, float32:
+			_ = v
+		case string:
+			_, err := fmt.Sscanf(v, "%f", new(float64))
+			if err != nil {
+				return fmt.Errorf("expected type number, got string %q", v)
+			}
+		default:
+			return fmt.Errorf("expected type number, got %T", val)
+		}
+	case "bool":
+		if _, ok := val.(bool); !ok {
+			return fmt.Errorf("expected type bool, got %T", val)
+		}
+	case "array":
+		switch val.(type) {
+		case []any, []string, []int, []float64:
+		default:
+			return fmt.Errorf("expected type array, got %T", val)
+		}
+	case "object":
+		if _, ok := val.(map[string]any); !ok {
+			return fmt.Errorf("expected type object, got %T", val)
+		}
+	}
+	return nil
 }

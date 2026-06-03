@@ -23,6 +23,15 @@ type Config struct {
 	Postgres PostgresConfig `yaml:"postgres,omitempty" json:"postgres,omitempty"`
 	Redis    RedisConfig    `yaml:"redis,omitempty" json:"redis,omitempty"`
 	Vars     map[string]any `yaml:"vars,omitempty" json:"vars,omitempty"`
+	Validate []VarDef       `yaml:"validate,omitempty" json:"validate,omitempty"`
+}
+
+type VarDef struct {
+	Name     string `yaml:"name" json:"name"`
+	Type     string `yaml:"type,omitempty" json:"type,omitempty"`
+	Required bool   `yaml:"required,omitempty" json:"required,omitempty"`
+	Pattern  string `yaml:"pattern,omitempty" json:"pattern,omitempty"`
+	Default  any    `yaml:"default,omitempty" json:"default,omitempty"`
 }
 
 type HTTPConfig struct {
@@ -59,9 +68,10 @@ type Step struct {
 	Shell   *ShellRequest `yaml:"shell,omitempty" json:"shell,omitempty"`
 
 	// Call support
-	File   string         `yaml:"file,omitempty" json:"file,omitempty"`
-	Target string         `yaml:"target,omitempty" json:"target,omitempty"`
-	With   map[string]any `yaml:"with,omitempty" json:"with,omitempty"`
+	File    string         `yaml:"file,omitempty" json:"file,omitempty"`
+	Target  string         `yaml:"target,omitempty" json:"target,omitempty"`
+	With    map[string]any `yaml:"with,omitempty" json:"with,omitempty"`
+	Returns []string       `yaml:"returns,omitempty" json:"returns,omitempty"`
 
 	// If support
 	Condition []string `yaml:"condition,omitempty" json:"condition,omitempty"`
@@ -86,6 +96,8 @@ type Step struct {
 	Message string            `yaml:"message,omitempty" json:"message,omitempty"`
 	Extract map[string]string `yaml:"extract,omitempty" json:"extract,omitempty"`
 	Assert  []AssertRule      `yaml:"assert,omitempty" json:"assert,omitempty"`
+
+	Cleanup []string `yaml:"cleanup,omitempty" json:"cleanup,omitempty"`
 
 	IgnoreError bool `yaml:"ignore_error,omitempty" json:"ignore_error,omitempty"`
 }
