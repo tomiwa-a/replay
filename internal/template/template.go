@@ -6,9 +6,14 @@ import (
 	"strings"
 
 	"github.com/aymerick/raymond"
+	"github.com/replay/replay/internal/functions"
 )
 
 var varPattern = regexp.MustCompile(`\{\{\s*([^}]+?)\s*\}\}`)
+
+func init() {
+	functions.Register()
+}
 
 func Render(input string, data map[string]any) string {
 	res, err := raymond.Render(input, data)
