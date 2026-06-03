@@ -1,0 +1,13 @@
+.git
+build/
+.opencode/
+*.md
+!README.md
+.github/
+.goreleaser.yaml
+examples/
+docker-compose.yaml
+schema.json
+staff_list.txt
+test-features.yaml
+nested-loop.yaml
