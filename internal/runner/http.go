@@ -135,5 +135,13 @@ func (r *HTTPRunner) Run(config workflow.HTTPConfig, step workflow.Step) (any, e
 		}
 	}
 
+	// Assertions
+	ae := NewAssertionEngine(r.state.All())
+	for _, rule := range step.Assert {
+		if err := ae.Check(rule, result); err != nil {
+			return result, fmt.Errorf("assertion failed: %w", err)
+		}
+	}
+
 	return result, nil
 }
