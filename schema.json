@@ -38,12 +38,44 @@
             "password": { "type": "string" },
             "db": { "type": "integer" }
           }
+        },
+        "vars": {
+          "type": "object",
+          "description": "Workflow variables accessible as {{ var_name }} in templates"
+        },
+        "validate": {
+          "type": "array",
+          "description": "Variable validation rules",
+          "items": {
+            "type": "object",
+            "required": ["name"],
+            "properties": {
+              "name": { "type": "string" },
+              "type": { "type": "string", "enum": ["string", "number", "bool", "array", "object"] },
+              "required": { "type": "boolean" },
+              "pattern": { "type": "string", "description": "Regex pattern to match against" },
+              "default": {}
+            }
+          }
+        }
+      }
+    },
+    "include": {
+      "type": "array",
+      "description": "Include steps from other workflow files",
+      "items": {
+        "type": "object",
+        "required": ["file"],
+        "properties": {
+          "file": { "type": "string" },
+          "as": { "type": "string" },
+          "with": { "type": "object" }
         }
       }
     },
     "steps": {
       "type": "array",
-      "items": { " $ref": "#/definitions/step" }
+      "items": { "$ref": "#/definitions/step" }
     }
   },
   "definitions": {
@@ -54,8 +86,9 @@
         "name": { "type": "string" },
         "type": {
           "type": "string",
-          "enum": ["http", "db", "shell", "print", "loop"]
+          "enum": ["http", "db", "shell", "print", "loop", "call", "if"]
         },
+        "message": { "type": "string", "description": "Message to print (for print steps)" },
         "foreach": {
           "type": "string",
           "description": "Format: 'list_variable, item_variable'"
@@ -64,13 +97,57 @@
           "type": "array",
           "items": { "$ref": "#/definitions/step" }
         },
+        "then": {
+          "type": "array",
+          "description": "Steps to execute if condition is true",
+          "items": { "$ref": "#/definitions/step" }
+        },
+        "else": {
+          "type": "array",
+          "description": "Steps to execute if condition is false",
+          "items": { "$ref": "#/definitions/step" }
+        },
+        "condition": {
+          "type": "array",
+          "description": "Condition to evaluate: [path, operator, value]",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": { "type": "string" }
+        },
+        "file": { "type": "string", "description": "File path for call steps" },
+        "target": { "type": "string", "description": "Specific step name to call within a file" },
+        "with": {
+          "type": "object",
+          "description": "Variables to pass to called workflow"
+        },
+        "returns": {
+          "type": "array",
+          "description": "Variables to return from called workflow to caller",
+          "items": { "type": "string" }
+        },
+        "cleanup": {
+          "type": "array",
+          "description": "Variables to delete after this step completes",
+          "items": { "type": "string" }
+        },
         "request": {
           "type": "object",
           "properties": {
             "method": { "type": "string" },
             "url": { "type": "string" },
             "headers": { "type": "object" },
-            "body": { "type": "string" }
+            "body": {}
+          }
+        },
+        "shell": {
+          "type": "object",
+          "description": "Shell configuration object",
+          "properties": {
+            "command": { "type": "string" },
+            "commands": { "type": "array", "items": { "type": "string" } },
+            "parallel": { "type": "boolean" },
+            "dir": { "type": "string" },
+            "timeout": { "type": "string" }
           }
         },
         "db": {
@@ -82,16 +159,29 @@
           }
         },
         "command": {
+          "description": "Shell command (string or array for multiple commands)",
           "oneOf": [
             { "type": "string" },
             { "type": "array", "items": { "type": "string" } }
           ]
         },
-        "dir": { "type": "string" },
-        "timeout": { "type": "string" },
+        "commands": {
+          "type": "array",
+          "description": "Multiple shell commands",
+          "items": { "type": "string" }
+        },
+        "parallel": {
+          "type": "boolean",
+          "description": "Run shell commands in parallel"
+        },
+        "query": { "type": "string", "description": "Database query (flat shortcut)" },
+        "engine": { "type": "string", "enum": ["postgres", "redis"], "description": "Database engine (flat shortcut)" },
+        "dir": { "type": "string", "description": "Working directory for shell commands" },
+        "timeout": { "type": "string", "description": "Timeout duration (e.g., '30s', '5m')" },
         "ignore_error": { "type": "boolean" },
         "extract": {
           "type": "object",
+          "description": "Extract values from response using JSONPath",
           "additionalProperties": { "type": "string" }
         },
         "assert": {
@@ -104,7 +194,7 @@
                 "properties": {
                   "path": { "type": "string" },
                   "op": { "type": "string" },
-                  "value": { "type": "string" }
+                  "value": {}
                 }
               },
               {
