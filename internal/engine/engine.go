@@ -57,6 +57,12 @@ func (e *Engine) Run(wf *workflow.Workflow) error {
 	// Set global config into state for use in templates (e.g., baseURL)
 	e.state.Set("config", wf.Config)
 
+	// Flatten config.vars into the state so they can be referenced directly
+	// as {{ var_name }} in templates.
+	for k, v := range wf.Config.Vars {
+		e.state.Set(k, v)
+	}
+
 	vars := e.state.All()
 	// Ensure the workflow name itself is in the state for interpolation
 	e.state.Set("name", wf.Name)
