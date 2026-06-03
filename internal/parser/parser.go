@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/replay/replay/internal/workflow"
 	"gopkg.in/yaml.v3"
@@ -23,7 +24,20 @@ func LoadFromFile(path string) ([]workflow.Workflow, error) {
 		return nil, fmt.Errorf("read workflow file %q: %w", path, err)
 	}
 
-	return LoadFromBytes(data)
+	wfs, err := LoadFromBytes(data)
+	if err != nil {
+		return nil, err
+	}
+
+	absPath, err := filepath.Abs(path)
+	if err == nil {
+		baseDir := filepath.Dir(absPath)
+		for i := range wfs {
+			wfs[i].BaseDir = baseDir
+		}
+	}
+
+	return wfs, nil
 }
 
 func LoadFromBytes(data []byte) ([]workflow.Workflow, error) {

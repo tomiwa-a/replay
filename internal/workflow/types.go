@@ -7,6 +7,7 @@ type Workflow struct {
 	Include []Include  `yaml:"include,omitempty" json:"include,omitempty"`
 	Steps   []Step     `yaml:"steps" json:"steps"`
 	Meta    MetaData   `yaml:"meta,omitempty" json:"meta,omitempty"`
+	BaseDir string     `yaml:"-" json:"-"`
 }
 
 type Include struct {

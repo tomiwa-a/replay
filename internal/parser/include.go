@@ -2,6 +2,7 @@ package parser
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"github.com/replay/replay/internal/template"
 	"github.com/replay/replay/internal/workflow"
@@ -21,7 +22,12 @@ func ResolveIncludes(wf *workflow.Workflow) error {
 			return fmt.Errorf("include entry requires 'file' field")
 		}
 
-		wfs, err := LoadFromFile(inc.File)
+		resolvedPath := inc.File
+		if wf.BaseDir != "" && !filepath.IsAbs(resolvedPath) {
+			resolvedPath = filepath.Join(wf.BaseDir, resolvedPath)
+		}
+
+		wfs, err := LoadFromFile(resolvedPath)
 		if err != nil {
 			return fmt.Errorf("failed to load included file %q: %w", inc.File, err)
 		}
