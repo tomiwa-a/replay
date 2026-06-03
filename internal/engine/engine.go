@@ -168,6 +168,9 @@ func (e *Engine) ExecuteSteps(steps []workflow.Step, config workflow.Config) err
 				return fmt.Errorf("step %q failed: %w", stepName, err)
 			}
 		} else {
+			// Promote extracted values from step scope to workflow scope
+			// so subsequent steps can access them via {{ var }}.
+			e.state.Promote()
 			e.reporter.StepPassed(duration)
 		}
 

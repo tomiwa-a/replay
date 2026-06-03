@@ -149,6 +149,22 @@ func (s *Store) Restore(snapshot map[string]any) {
 	}
 }
 
+// Promote copies all values from the current (step) scope into the
+// parent (workflow) scope. This makes extracted values visible to
+// subsequent steps after the step scope exits.
+func (s *Store) Promote() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if len(s.scopes) < 2 {
+		return
+	}
+	top := s.scopes[len(s.scopes)-1]
+	parent := s.scopes[len(s.scopes)-2]
+	for k, v := range top.data {
+		parent.data[k] = v
+	}
+}
+
 func (s *Store) ScopeDepth() int {
 	s.mu.RLock()
 	defer s.mu.RUnlock()

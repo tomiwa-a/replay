@@ -102,7 +102,7 @@ func (r *HTTPRunner) Run(config workflow.HTTPConfig, step workflow.Step) (any, e
 		r.reporter.Debug("HTTP RESPONSE", map[string]any{
 			"status":  resp.StatusCode,
 			"headers": resp.Header,
-			"body":    decoded,
+			"data":    decoded,
 		})
 	}
 
