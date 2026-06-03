@@ -46,3 +46,36 @@ changelog:
     exclude:
       - "^docs:"
       - "^test:"
+
+dockers:
+  - image_templates:
+      - "ghcr.io/replay/replay:{{ .Version }}-amd64"
+    use: buildx
+    build_flag_templates:
+      - "--platform=linux/amd64"
+      - "--build-arg=VERSION={{ .Version }}"
+      - "--build-arg=COMMIT={{ .Commit }}"
+      - "--build-arg=DATE={{ .Date }}"
+    goos: linux
+    goarch: amd64
+
+  - image_templates:
+      - "ghcr.io/replay/replay:{{ .Version }}-arm64"
+    use: buildx
+    build_flag_templates:
+      - "--platform=linux/arm64"
+      - "--build-arg=VERSION={{ .Version }}"
+      - "--build-arg=COMMIT={{ .Commit }}"
+      - "--build-arg=DATE={{ .Date }}"
+    goos: linux
+    goarch: arm64
+
+docker_manifests:
+  - name_template: "ghcr.io/replay/replay:{{ .Version }}"
+    image_templates:
+      - "ghcr.io/replay/replay:{{ .Version }}-amd64"
+      - "ghcr.io/replay/replay:{{ .Version }}-arm64"
+  - name_template: "ghcr.io/replay/replay:latest"
+    image_templates:
+      - "ghcr.io/replay/replay:{{ .Version }}-amd64"
+      - "ghcr.io/replay/replay:{{ .Version }}-arm64"
