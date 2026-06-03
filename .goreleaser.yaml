@@ -19,6 +19,11 @@ builds:
       - arm64
     main: .
     binary: replay
+    ldflags:
+      - -s -w
+      - -X github.com/replay/replay/internal/version.Version={{.Version}}
+      - -X github.com/replay/replay/internal/version.Commit={{.Commit}}
+      - -X github.com/replay/replay/internal/version.Date={{.Date}}
 
 archives:
   - format: tar.gz
