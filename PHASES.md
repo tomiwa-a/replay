@@ -6,20 +6,20 @@ This document tracks the detailed engineering tasks for Replay.
 
 **Goal:** Ensure all core features are stable, complete, and production-ready by addressing gaps in the current implementation.
 
-- [ ] **Complete Phase 6 Items**
+- [x] **Complete Phase 6 Items**
   - [x] Implement worker pool for multi-workflow execution
   - [x] Add `--concurrency N` flag
-  - [ ] Add `--fail-fast` toggle to stop execution on first failure
-  - [ ] Implement `parallel: true` for shell steps with multiple commands
-  - [ ] Add ability to `include` steps from other workflow files with parameter passing
-  - [ ] Implement global variable persistence across multiple workflow files in a single run
+  - [x] Add `--fail-fast` toggle to stop execution on first failure
+  - [x] Implement `parallel: true` for shell steps with multiple commands
+  - [x] Add ability to `include` steps from other workflow files with parameter passing
+  - [x] Implement global variable persistence across multiple workflow files in a single run
 
-- [ ] **Fix Known Issues & Inconsistencies**
-  - [ ] Address debug flag propagation to engine components
+- [x] **Fix Known Issues & Inconsistencies**
+  - [x] Address debug flag propagation to engine components
   - [ ] Ensure consistent error handling across all step types
   - [ ] Fix any race conditions in state management under high concurrency
-  - [ ] Improve JSONPath error messages and handling
-  - [ ] Validate and improve variable interpolation edge cases
+  - [x] Improve JSONPath error messages and handling
+  - [x] Validate and improve variable interpolation edge cases
 
 - [ ] **Enhanced Testing**
   - [ ] Add integration tests for all step type combinations
@@ -122,12 +122,35 @@ This document tracks the detailed engineering tasks for Replay.
 
 ## Summary
 
-| Phase | Focus Area | Key Deliverables |
-|-------|------------|------------------|
-| 1 | Stabilization & Completion | Fail-fast mode, parallel shell commands, enhanced testing, bug fixes |
-| 2 | Composition & Reusability | Advanced imports, scoped variables, standard workflow library |
-| 3 | Advanced Features | Built-in functions, config management, developer experience improvements |
-| 4 | Production Hardening | Observability, security, reliability features for enterprise use |
-| 5 | Release & Distribution | Professional packaging, documentation, ecosystem building |
+| Phase | Focus Area | Key Deliverables | Status |
+|-------|------------|------------------|--------|
+| 1 | Stabilization & Completion | Fail-fast mode, parallel shell commands, enhanced testing, bug fixes | In Progress (7/12 items) |
+| 2 | Composition & Reusability | Advanced imports, scoped variables, standard workflow library | Not Started |
+| 3 | Advanced Features | Built-in functions, config management, developer experience improvements | Not Started |
+| 4 | Production Hardening | Observability, security, reliability features for enterprise use | Not Started |
+| 5 | Release & Distribution | Professional packaging, documentation, ecosystem building | Not Started |
 
 Each phase builds upon the previous one, taking Replay from its current feature-complete state to a production-ready, enterprise-grade E2E testing platform.
+
+## Current Status
+
+**Phase 1 Progress:** 7/12 items completed
+
+### Completed:
+- Worker pool for multi-workflow execution
+- `--concurrency N` flag
+- `--fail-fast` toggle
+- `parallel: true` for shell steps
+- `include` directive with parameter passing
+- Global variable persistence
+- Debug flag propagation
+- JSONPath error messages
+- Variable interpolation edge cases
+
+### Remaining:
+- Ensure consistent error handling across all step types
+- Fix race conditions in state management
+- Add integration tests
+- Add chaos/concurrent testing
+- Achieve >90% unit test coverage
+- Add end-to-end test suites
