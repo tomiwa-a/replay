@@ -54,21 +54,21 @@ This document tracks the detailed engineering tasks for Replay.
 
 **Goal:** Add advanced features that improve developer productivity and enable sophisticated testing scenarios.
 
-- [ ] **Built-in Functions & Transformers**
-  - [ ] Implement data transformation functions (string formatting, date math, etc.)
-  - [ ] Add mathematical and statistical functions
-  - [ ] Implement JSON manipulation functions (merge, filter, transform)
+- [x] **Built-in Functions & Transformers**
+  - [x] Implement data transformation functions (string formatting, date math, etc.)
+  - [x] Add mathematical and statistical functions
+  - [x] Implement JSON manipulation functions (merge, filter, transform)
   - [ ] Add faker-like data generation functions (names, addresses, etc.)
 
-- [ ] **Improved Configuration Management**
-  - [ ] Add config file support (replay.yaml) with environment variable interpolation
-  - [ ] Implement preset management for reusable configurations
-  - [ ] Add profile support (dev, test, prod, etc.)
-  - [ ] Implement configuration validation and schemas
+- [x] **Improved Configuration Management**
+  - [x] Add config file support (replay.yaml) with environment variable interpolation
+  - [x] Implement preset management for reusable configurations
+  - [x] Add profile support (dev, test, prod, etc.)
+  - [x] Implement configuration validation and schemas
 
-- [ ] **Developer Experience Enhancements**
-  - [ ] Add watch mode (`replay watch`) to auto-re-run workflows on file changes
-  - [ ] Improve IDE integration with better schema awareness
+- [x] **Developer Experience Enhancements**
+  - [x] Add watch mode (`replay watch`) to auto-re-run workflows on file changes
+  - [x] Improve IDE integration with better schema awareness
   - [ ] Add interactive workflow debugger
   - [ ] Create workflow visualization tools
 
@@ -126,7 +126,7 @@ This document tracks the detailed engineering tasks for Replay.
 |-------|------------|------------------|--------|
 | 1 | Stabilization & Completion | Fail-fast mode, parallel shell commands, enhanced testing, bug fixes | In Progress (7/12 items) |
 | 2 | Composition & Reusability | Scoped variables, call isolation, variable validation, cleanup | In Progress (3/12 items) |
-| 3 | Advanced Features | Built-in functions, config management, developer experience improvements | Not Started |
+| 3 | Advanced Features | Built-in functions, config management, watch mode, schema | In Progress (7/12 items) |
 | 4 | Production Hardening | Observability, security, reliability features for enterprise use | Not Started |
 | 5 | Release & Distribution | Professional packaging, documentation, ecosystem building | Not Started |
 
@@ -175,3 +175,17 @@ Each phase builds upon the previous one, taking Replay from its current feature-
 - Create database setup/teardown workflows
 - Create API testing workflows for common patterns
 - Create workflows for common test data generation
+
+**Phase 3 Progress:** 7/12 items completed
+
+### Completed:
+- Built-in template functions (45 functions: string, math, date, JSON, type)
+- Config file support (replay.yaml with profiles and presets)
+- Watch mode (`replay watch` with debounce and file watching)
+- Schema updated with all step types and fields
+- Environment variable interpolation in config
+
+### Remaining:
+- Add faker-like data generation functions (names, addresses, etc.)
+- Add interactive workflow debugger
+- Create workflow visualization tools
