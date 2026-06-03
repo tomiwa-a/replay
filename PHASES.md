@@ -38,10 +38,10 @@ This document tracks the detailed engineering tasks for Replay.
   - [ ] Create workflow composition GUI/Diagrammer (optional)
   - [ ] Implement workflow inheritance and extension mechanisms
 
-- [ ] **Enhanced State Management**
-  - [ ] Add scoped variables (workflow-scoped, step-scoped, global)
-  - [ ] Implement variable expiration and cleanup policies
-  - [ ] Add variable validation and type hints
+- [x] **Enhanced State Management**
+  - [x] Add scoped variables (workflow-scoped, step-scoped, global)
+  - [x] Implement variable expiration and cleanup policies
+  - [x] Add variable validation and type hints
   - [ ] Implement secret management for sensitive variables
 
 - [ ] **Standard Library of Workflows**
@@ -125,7 +125,7 @@ This document tracks the detailed engineering tasks for Replay.
 | Phase | Focus Area | Key Deliverables | Status |
 |-------|------------|------------------|--------|
 | 1 | Stabilization & Completion | Fail-fast mode, parallel shell commands, enhanced testing, bug fixes | In Progress (7/12 items) |
-| 2 | Composition & Reusability | Advanced imports, scoped variables, standard workflow library | Not Started |
+| 2 | Composition & Reusability | Scoped variables, call isolation, variable validation, cleanup | In Progress (3/12 items) |
 | 3 | Advanced Features | Built-in functions, config management, developer experience improvements | Not Started |
 | 4 | Production Hardening | Observability, security, reliability features for enterprise use | Not Started |
 | 5 | Release & Distribution | Professional packaging, documentation, ecosystem building | Not Started |
@@ -154,3 +154,24 @@ Each phase builds upon the previous one, taking Replay from its current feature-
 - Add chaos/concurrent testing
 - Achieve >90% unit test coverage
 - Add end-to-end test suites
+
+**Phase 2 Progress:** 3/12 items completed
+
+### Completed:
+- Scoped variables (global, workflow, step scopes)
+- Call step isolation with `returns` field
+- Variable validation (type, required, pattern, default)
+- Variable cleanup via `cleanup` field on steps
+- TTL-based variable expiration
+- Loop variable cleanup after loop completes
+
+### Remaining:
+- Implement workflow libraries with versioning
+- Add support for workflow templates with parameters
+- Create workflow composition GUI/Diagrammer (optional)
+- Implement workflow inheritance and extension mechanisms
+- Implement secret management for sensitive variables
+- Create reusable authentication workflows (OAuth, JWT, API keys)
+- Create database setup/teardown workflows
+- Create API testing workflows for common patterns
+- Create workflows for common test data generation
